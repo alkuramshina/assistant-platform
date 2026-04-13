@@ -1,0 +1,94 @@
+services:
+  nanobot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${REGISTRY_IMAGE:-nanobot-enterprise-pilot}:${IMAGE_TAG:-dev}
+    restart: unless-stopped
+    init: true
+    user: "${APP_UID:-1000}:${APP_GID:-1000}"
+    working_dir: /workspace
+    environment:
+      TZ: ${TZ:-UTC}
+      NANOBOT_HOME: /home/app/.nanobot
+      NANOBOT_CONFIG: /home/app/.nanobot/config.json
+      NANOBOT_WORKSPACE: /workspace
+      NANOBOT_LOG_LEVEL: ${NANOBOT_LOG_LEVEL:-INFO}
+      NANOBOT_GATEWAY_PORT: ${NANOBOT_GATEWAY_PORT:-18790}
+
+      # Agent defaults
+      DEFAULT_PROVIDER: ${DEFAULT_PROVIDER:-openrouter}
+      DEFAULT_MODEL: ${DEFAULT_MODEL:-openai/gpt-4.1-mini}
+      SYSTEM_PROMPT: ${SYSTEM_PROMPT:-You are a concise and reliable work assistant.}
+
+      # LLM providers
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      VLLM_API_BASE: ${VLLM_API_BASE:-}
+      VLLM_API_KEY: ${VLLM_API_KEY:-}
+
+      # Channel selection
+      CHANNEL_TYPE: ${CHANNEL_TYPE:-telegram}
+      CHANNEL_ALLOW_FROM: ${CHANNEL_ALLOW_FROM:-}
+      CHANNEL_GROUP_POLICY: ${CHANNEL_GROUP_POLICY:-mention}
+      CHANNEL_GROUP_ALLOW_FROM: ${CHANNEL_GROUP_ALLOW_FROM:-}
+
+      # Telegram
+      TELEGRAM_ENABLED: ${TELEGRAM_ENABLED:-true}
+      TELEGRAM_TOKEN: ${TELEGRAM_TOKEN:-}
+
+      # Slack
+      SLACK_ENABLED: ${SLACK_ENABLED:-false}
+      SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN:-}
+      SLACK_APP_TOKEN: ${SLACK_APP_TOKEN:-}
+
+      # Feishu
+      FEISHU_ENABLED: ${FEISHU_ENABLED:-false}
+      FEISHU_APP_ID: ${FEISHU_APP_ID:-}
+      FEISHU_APP_SECRET: ${FEISHU_APP_SECRET:-}
+
+    volumes:
+      - nanobot_data:/home/app/.nanobot
+      - nanobot_workspace:/workspace
+    command: ["/app/entrypoint.sh"]
+
+  # Ручной backup job. Запускается только при необходимости:
+  # docker compose --profile ops run --rm backup
+  backup:
+    image: restic/restic:0.17.3
+    profiles: ["ops"]
+    restart: "no"
+    environment:
+      APP_NAME: ${APP_NAME:-nanobot-pilot}
+      RESTIC_REPOSITORY: ${RESTIC_REPOSITORY:-}
+      RESTIC_PASSWORD: ${RESTIC_PASSWORD:-}
+      AWS_ACCESS_KEY_ID: ${BACKUP_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${BACKUP_SECRET_ACCESS_KEY:-}
+      AWS_DEFAULT_REGION: ${BACKUP_REGION:-us-east-1}
+    volumes:
+      - nanobot_data:/backup/nanobot_data:ro
+      - nanobot_workspace:/backup/nanobot_workspace:ro
+      - ./ops/backup:/scripts:ro
+    entrypoint: ["/bin/sh", "/scripts/backup.sh"]
+
+  # Ручной restore job. Перед запуском остановить nanobot.
+  restore:
+    image: restic/restic:0.17.3
+    profiles: ["ops"]
+    restart: "no"
+    environment:
+      APP_NAME: ${APP_NAME:-nanobot-pilot}
+      RESTIC_REPOSITORY: ${RESTIC_REPOSITORY:-}
+      RESTIC_PASSWORD: ${RESTIC_PASSWORD:-}
+      AWS_ACCESS_KEY_ID: ${BACKUP_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${BACKUP_SECRET_ACCESS_KEY:-}
+      AWS_DEFAULT_REGION: ${BACKUP_REGION:-us-east-1}
+    volumes:
+      - nanobot_data:/backup/nanobot_data
+      - nanobot_workspace:/backup/nanobot_workspace
+    entrypoint: ["restic"]
+
+volumes:
+  nanobot_data:
+  nanobot_workspace:
