@@ -10,26 +10,44 @@ Goal: use the same `docker-compose.yml` locally and in Coolify, with no Docker s
    cp .env.example .env
    ```
 
-2. Fill in the minimum secrets in `.env`:
+2. Fill in the minimum local values in `.env`.
 
-   - `DEFAULT_MODEL`
-   - one provider key, for example `OPENROUTER_API_KEY`
-   - one channel token, for example `TELEGRAM_TOKEN`
+   These defaults are already selected in `.env.example`:
+
+   - `DEFAULT_PROVIDER=openrouter`
+   - `DEFAULT_MODEL=openrouter/free`
+   - `CHANNEL_TYPE=telegram`
+   - `TELEGRAM_ENABLED=true`
+
+   For the full Telegram/OpenRouter smoke test, fill real local values for:
+
+   - `OPENROUTER_API_KEY`
+   - `TELEGRAM_TOKEN`
    - `CHANNEL_ALLOW_FROM`
 
-3. Build and start:
+   Keep `.env` uncommitted. Do not put real secrets in `.env.example` or project docs.
+
+3. Run baseline checks:
 
    ```sh
-   docker compose up -d --build nanobot
+   docker compose config
+   docker compose build nanobot
    ```
 
-4. Check:
+4. Run the full local smoke test when Docker, network, and the local secrets above are available:
 
    ```sh
+   docker compose up -d nanobot
    docker compose ps
-   docker compose logs -f nanobot
-   docker volume ls | grep nanobot
+   docker compose logs --tail=100 nanobot
+   docker compose restart nanobot
+   docker volume ls
    ```
+
+   Send a Telegram message from the `CHANNEL_ALLOW_FROM` account and confirm the bot responds through OpenRouter.
+   Confirm the named volumes `nanobot_data` and `nanobot_workspace` still exist after restart.
+
+   If Docker, network, `.env`, or the required local values are unavailable, do not mark the full smoke test as passed; record it as blocked by the local environment.
 
 ## First backup
 
