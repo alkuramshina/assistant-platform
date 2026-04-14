@@ -18,7 +18,7 @@ services:
 
       # Agent defaults
       DEFAULT_PROVIDER: ${DEFAULT_PROVIDER:-openrouter}
-      DEFAULT_MODEL: ${DEFAULT_MODEL:-openai/gpt-4.1-mini}
+      DEFAULT_MODEL: ${DEFAULT_MODEL:-openrouter/free}
       SYSTEM_PROMPT: ${SYSTEM_PROMPT:-You are a concise and reliable work assistant.}
 
       # LLM providers
