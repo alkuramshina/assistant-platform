@@ -30,25 +30,33 @@ Read first:
    docker compose logs -f nanobot
    ```
 
-3. Optional smoke test through the configured channel.
+5. Optional smoke test through the configured channel.
 
 ## Registry-based redeploy
 
-1. Build and push through GitHub Actions or locally:
+1. Prefer publishing through GitHub Actions.
+
+   The workflow publishes to GHCR on pushes to `main`, tags matching `v*`, and manual `workflow_dispatch`.
+   For normal Coolify deployments, use an immutable tag such as `sha-<git-sha>`.
+   For human release references, use a release tag such as `vX.Y.Z`.
+
+2. Local build and push remains a fallback:
 
    ```sh
-   docker build -t ghcr.io/OWNER/assistant-platform:TAG .
-   docker push ghcr.io/OWNER/assistant-platform:TAG
+   docker build -t ghcr.io/OWNER/assistant-platform:sha-<git-sha> .
+   docker push ghcr.io/OWNER/assistant-platform:sha-<git-sha>
    ```
 
-2. Set in Coolify:
+3. Set in Coolify:
 
    ```text
    REGISTRY_IMAGE=ghcr.io/OWNER/assistant-platform
-   IMAGE_TAG=TAG
+   IMAGE_TAG=sha-<git-sha>
    ```
 
-3. Trigger redeploy in Coolify.
+4. Trigger redeploy in Coolify.
+
+Do not use floating `main` as the normal Coolify deploy tag. It is convenient for CI visibility, but immutable `sha-*` tags make rollback and audit clearer.
 
 ## Before risky changes
 
@@ -62,7 +70,7 @@ Treat this backup as secret-bearing application data. It can include generated c
 
 ## Rollback
 
-1. Set `IMAGE_TAG` back to the previous known-good tag.
+1. Set `IMAGE_TAG` back to the previous known-good immutable tag, for example `sha-<previous-git-sha>`.
 2. Redeploy.
 3. If state migration or config generation corrupted data, stop the app and follow `ops/backup/restore.md`.
 

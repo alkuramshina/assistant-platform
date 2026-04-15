@@ -37,7 +37,7 @@ Coolify должен использовать тот же [`docker-compose.yml`]
 
 ```text
 REGISTRY_IMAGE=ghcr.io/OWNER/assistant-platform
-IMAGE_TAG=TAG
+IMAGE_TAG=sha-<git-sha>
 ```
 
 `REGISTRY_IMAGE` указывает на private registry image. `IMAGE_TAG` должен быть понятным deploy tag из Phase 3.
@@ -48,6 +48,10 @@ IMAGE_TAG=TAG
 REGISTRY_IMAGE=nanobot-enterprise-pilot
 IMAGE_TAG=dev
 ```
+
+Normal Coolify deploy tag for the pilot is an immutable `sha-...` tag produced by GitHub Actions. Release references may use `v*` tags, for example `v0.1.0`.
+
+Avoid using floating `main` as the normal Coolify deploy target. The `main` tag can exist as a CI artifact, but rollback and audit should use immutable `sha-*` tags or explicit release tags.
 
 ## Environment And Secrets
 
