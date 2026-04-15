@@ -23,6 +23,22 @@ def env(name: str, default: str = "") -> str:
     return os.environ.get(name, default).strip()
 
 
+def secret_env(name: str) -> str:
+    value = env(name)
+    if value:
+        return value
+
+    file_path = env(f"{name}_FILE")
+    if not file_path:
+        return ""
+
+    path = Path(file_path)
+    if not path.exists():
+        return ""
+
+    return path.read_text(encoding="utf-8").strip()
+
+
 def put_provider(
     providers: dict[str, dict[str, str]],
     name: str,
@@ -40,10 +56,10 @@ def put_provider(
 
 
 providers: dict[str, dict[str, str]] = {}
-put_provider(providers, "openrouter", api_key=env("OPENROUTER_API_KEY"))
-put_provider(providers, "openai", api_key=env("OPENAI_API_KEY"))
-put_provider(providers, "anthropic", api_key=env("ANTHROPIC_API_KEY"))
-put_provider(providers, "vllm", api_key=env("VLLM_API_KEY"), api_base=env("VLLM_API_BASE"))
+put_provider(providers, "openrouter", api_key=secret_env("OPENROUTER_API_KEY"))
+put_provider(providers, "openai", api_key=secret_env("OPENAI_API_KEY"))
+put_provider(providers, "anthropic", api_key=secret_env("ANTHROPIC_API_KEY"))
+put_provider(providers, "vllm", api_key=secret_env("VLLM_API_KEY"), api_base=env("VLLM_API_BASE"))
 
 cfg: dict = {
     "agents": {
@@ -70,9 +86,16 @@ allow_from = csv_list("CHANNEL_ALLOW_FROM")
 group_allow_from = csv_list("CHANNEL_GROUP_ALLOW_FROM")
 group_policy = env("CHANNEL_GROUP_POLICY", "mention")
 
+
+def require_allow_from(channel: str) -> None:
+    if not allow_from:
+        raise SystemExit(f"CHANNEL_ALLOW_FROM is required when {channel} is enabled")
+
+
 if env("TELEGRAM_ENABLED", "false").lower() == "true":
-    token = env("TELEGRAM_TOKEN")
+    token = secret_env("TELEGRAM_TOKEN")
     if token:
+        require_allow_from("telegram")
         cfg["channels"]["telegram"] = {
             "enabled": True,
             "token": token,
@@ -82,9 +105,10 @@ if env("TELEGRAM_ENABLED", "false").lower() == "true":
         }
 
 if env("SLACK_ENABLED", "false").lower() == "true":
-    bot_token = env("SLACK_BOT_TOKEN")
-    app_token = env("SLACK_APP_TOKEN")
+    bot_token = secret_env("SLACK_BOT_TOKEN")
+    app_token = secret_env("SLACK_APP_TOKEN")
     if bot_token and app_token:
+        require_allow_from("slack")
         cfg["channels"]["slack"] = {
             "enabled": True,
             "botToken": bot_token,
@@ -96,8 +120,9 @@ if env("SLACK_ENABLED", "false").lower() == "true":
 
 if env("FEISHU_ENABLED", "false").lower() == "true":
     app_id = env("FEISHU_APP_ID")
-    app_secret = env("FEISHU_APP_SECRET")
+    app_secret = secret_env("FEISHU_APP_SECRET")
     if app_id and app_secret:
+        require_allow_from("feishu")
         cfg["channels"]["feishu"] = {
             "enabled": True,
             "appId": app_id,

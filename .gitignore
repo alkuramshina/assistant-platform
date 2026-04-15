@@ -3,6 +3,7 @@
 .env.production
 .env.*.local
 !.env.example
+secrets/
 __pycache__/
 *.pyc
 .venv/

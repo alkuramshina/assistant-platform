@@ -17,7 +17,7 @@
 ## Project Constraints
 
 - Docker Compose is the shared source for local and remote deployment.
-- Do not commit real secrets. Use `.env.example` for variable names and placeholder values only.
+- Do not commit real secrets. Use `.env.example` for variable names and placeholder values only; runtime keys should enter containers through Docker Compose secrets or platform-managed secrets.
 - Do not mount `docker.sock` into the nanobot container.
 - Avoid unnecessary bind mounts and elevated container privileges.
 - Keep nanobot runtime state in named volumes: `nanobot_data` and `nanobot_workspace`.
