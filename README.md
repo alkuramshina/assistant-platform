@@ -71,3 +71,14 @@ CHANNEL_TYPE=telegram
 - Первый запуск: [`ops/runbooks/first-deploy.md`](ops/runbooks/first-deploy.md)
 - Redeploy и rollback: [`ops/runbooks/redeploy.md`](ops/runbooks/redeploy.md)
 - Restore application data: [`ops/backup/restore.md`](ops/backup/restore.md)
+
+## Registry Publishing
+
+Pilot images publish to private GHCR through GitHub Actions:
+
+```text
+REGISTRY_IMAGE=ghcr.io/OWNER/assistant-platform
+IMAGE_TAG=sha-<git-sha>
+```
+
+Coolify should normally deploy immutable `sha-*` tags. GHCR pull access stays private and uses a read-only PAT, deploy token, or equivalent registry credential. Do not commit registry credentials or real secrets to repository files.

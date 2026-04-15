@@ -58,6 +58,8 @@ Read first:
 
 Do not use floating `main` as the normal Coolify deploy tag. It is convenient for CI visibility, but immutable `sha-*` tags make rollback and audit clearer.
 
+For private GHCR packages, Coolify needs read-only package pull access through a PAT, deploy token, or equivalent registry credential. Do not commit registry credentials to `.env.example`, docs, or git history.
+
 ## Before risky changes
 
 Run a backup:

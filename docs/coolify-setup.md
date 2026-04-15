@@ -53,6 +53,14 @@ Normal Coolify deploy tag for the pilot is an immutable `sha-...` tag produced b
 
 Avoid using floating `main` as the normal Coolify deploy target. The `main` tag can exist as a CI artifact, but rollback and audit should use immutable `sha-*` tags or explicit release tags.
 
+## Private GHCR Pull Access
+
+Keep the GHCR package private for the pilot. Coolify needs a registry credential that can pull the package, such as a read-only PAT, deploy token, or equivalent GHCR registry credential.
+
+The credential should be scoped for reading package/container images, not broad repository administration. Do not commit this credential to `.env.example`, docs, git history, or issue text.
+
+Exact token creation and Coolify registry UI setup are external operator actions and should be validated during Phase 4.
+
 ## Environment And Secrets
 
 Не коммитить `.env` и реальные ключи. В Coolify/platform UI значения делятся на два класса.
