@@ -7,6 +7,12 @@ This restores the two application volumes from restic:
 
 Coolify itself has a separate backup path. This document only covers application data.
 
+## Security caveat
+
+Backups of `nanobot_data` and `nanobot_workspace` may contain generated config, memory, workspace files, channel state, and other runtime data. Treat restic repositories as secret-bearing: encrypt them, restrict access, and do not paste real repository credentials into docs or tickets.
+
+Phase 2 keeps the current restore mechanics documented. Phase 6 should validate backup/restore end to end and prefer an explicit snapshot ID or tag over a bare `latest` restore.
+
 ## Prerequisites
 
 - Docker Engine and Docker Compose
@@ -28,12 +34,16 @@ Coolify itself has a separate backup path. This document only covers application
    docker compose up --no-start nanobot
    ```
 
-3. Restore the latest snapshot into the mounted volumes:
+3. Restore a snapshot into the mounted volumes.
+
+   Current pilot command:
 
    ```sh
    docker compose --profile ops run --rm \
      restore restore latest --target /
    ```
+
+   `latest` is convenient for smoke testing but should not be treated as the final safe restore strategy. In Phase 6, prefer an explicit snapshot ID or a tagged snapshot selected after `restic snapshots`.
 
    The snapshots contain `/backup/nanobot_data` and `/backup/nanobot_workspace`.
    During restore these paths are backed by the same named volumes used by the app.
@@ -62,6 +72,8 @@ Useful inspection commands:
 docker compose --profile ops run --rm restore snapshots
 docker compose --profile ops run --rm restore ls latest
 ```
+
+For Phase 6 hardening, replace `latest` with the selected snapshot ID or tag in inspection and restore commands.
 
 ## Verification
 

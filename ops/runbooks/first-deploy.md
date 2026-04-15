@@ -2,6 +2,12 @@
 
 Goal: use the same `docker-compose.yml` locally and in Coolify, with no Docker socket mount and no host workspace bind mount.
 
+Read first:
+
+- `README.md`
+- `docs/architecture.md`
+- `docs/coolify-setup.md`
+
 ## Local bootstrap
 
 1. Create local env:
@@ -43,6 +49,8 @@ Goal: use the same `docker-compose.yml` locally and in Coolify, with no Docker s
    docker compose build nanobot
    ```
 
+   Confirm the rendered config still uses named volumes `nanobot_data` and `nanobot_workspace`, has no `docker.sock` mount, and runs `nanobot` as non-root through `APP_UID`/`APP_GID`.
+
 4. Run the full local smoke test when Docker, network, and the local secrets above are available:
 
    ```sh
@@ -59,6 +67,8 @@ Goal: use the same `docker-compose.yml` locally and in Coolify, with no Docker s
    If Docker, network, `.env`, or the required local values are unavailable, do not mark the full smoke test as passed; record it as blocked by the local environment.
 
 ## First backup
+
+Backups of `nanobot_data` and `nanobot_workspace` may contain generated config, memory, workspace files, and other runtime state. Treat the restic repository as secret-bearing and access-controlled.
 
 1. Fill backup secret values in local environment or `.env`:
 
@@ -82,6 +92,8 @@ Goal: use the same `docker-compose.yml` locally and in Coolify, with no Docker s
 
 ## Coolify import
 
+See `docs/coolify-setup.md` for the Phase 2 preparation checklist. Live Coolify UI validation belongs to Phase 4.
+
 1. Push the image to a private registry, GHCR by default.
 2. In Coolify, create a Compose application from this repository.
 3. Use the same `docker-compose.yml`.
@@ -100,3 +112,4 @@ Configure Azure OAuth for Coolify access, not inside the `nanobot` container. Th
 - It runs as UID/GID `1000:1000` by default.
 - State is in named volumes.
 - Backups can read the same named volumes through the `ops` profile.
+- `CHANNEL_ALLOW_FROM` is set for the selected Telegram smoke-test account.
