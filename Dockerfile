@@ -7,7 +7,7 @@ ENV NANOBOT_CONFIG=/home/app/.nanobot/config.json
 ENV NANOBOT_WORKSPACE=/workspace
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends bash ca-certificates tini \
+    && apt-get install -y --no-install-recommends bash ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 RUN useradd --create-home --uid 1000 --shell /usr/sbin/nologin app
@@ -26,5 +26,4 @@ RUN chmod +x /app/entrypoint.sh \
 
 USER app
 
-ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["/app/entrypoint.sh"]

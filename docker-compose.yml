@@ -64,7 +64,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "python -c \"import os, socket; port=int(os.environ.get('NANOBOT_GATEWAY_PORT', '18790')); s=socket.create_connection(('127.0.0.1', port), 5); s.close()\"",
+          "python -c \"from pathlib import Path; import sys; sys.exit(0 if any(b'nanobot\\x00gateway' in p.read_bytes() for p in Path('/proc').glob('[0-9]*/cmdline')) else 1)\"",
         ]
       interval: 30s
       timeout: 10s
