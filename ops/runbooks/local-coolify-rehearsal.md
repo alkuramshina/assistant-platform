@@ -1,6 +1,6 @@
 # Local Coolify Rehearsal
 
-Goal: start Coolify locally on the current Docker Desktop/WSL2 machine and rehearse the Compose import path before the live Coolify control-plane validation phase.
+Goal: start Coolify on a local Linux VM and rehearse the Compose import path before the live Coolify control-plane validation phase.
 
 This runbook is for Phase 03.1. It does not replace the later remote or live Coolify validation. Phase 03.1 is complete only when local Coolify actually starts and the UI is reachable.
 
@@ -12,10 +12,13 @@ Do not paste real secret values into this file, `.planning`, screenshots, issue 
 
 ## Preconditions
 
-- Docker Desktop is installed and running.
-- WSL2/Linux is available for the Coolify install path.
-- Docker and Docker Compose are reachable from the selected environment.
-- Port `8000` is available, or a different installer-provided local UI URL is recorded.
+- A local Linux VM is available on the current machine.
+- The VM runs Ubuntu LTS or another Coolify-supported Linux distribution.
+- The VM has enough resources for a local control-plane rehearsal. Use at least 2 CPU cores, 2 GB RAM, and 30 GB disk as a practical minimum.
+- The VM has network access to download packages and images.
+- The VM is reachable from the host by SSH or by an equivalent VM console.
+- Port `8000` is reachable from the host, or a different installer-provided local UI URL is recorded.
+- Docker Engine is native to the VM and managed by `systemd` as `docker.service`.
 - The private GHCR image path is available for rehearsal:
 
   ```text
@@ -32,28 +35,42 @@ Do not paste real secret values into this file, `.planning`, screenshots, issue 
   CHANNEL_ALLOW_FROM
   ```
 
+## Local VM Shape
+
+Use the VM tool already available on the workstation, such as Hyper-V, VirtualBox, VMware, or another local hypervisor. Keep the VM boring:
+
+- Ubuntu Server LTS;
+- 2 CPU cores minimum;
+- 2 GB RAM minimum, 4 GB if available;
+- 30 GB disk minimum, 40 GB if available;
+- SSH enabled or console access available;
+- network mode that makes port `8000` reachable from the Windows host, either bridged networking or NAT port forwarding.
+
+The VM should behave like a small Linux server. Avoid Docker Desktop integration for this rehearsal because Coolify's installer needs to manage the Docker daemon through Linux service semantics.
+
 ## Preflight
 
-Run these checks before any install command:
+Run these checks on the Windows host before any install command:
 
 ```powershell
-wsl -l -v
-docker version
-docker compose version
-docker ps
 Get-NetTCPConnection -LocalPort 8000 -ErrorAction SilentlyContinue
+Test-NetConnection <vm-ip> -Port 22
 ```
 
-Inside the selected WSL2/Linux environment, run where available:
+Run these checks inside the local Linux VM:
 
 ```sh
 uname -a
 df -h
 free -h || true
+systemctl is-system-running || true
+systemctl status docker --no-pager || true
+docker version
+docker compose version
 ss -ltnp | grep ':8000' || true
 ```
 
-If Docker, WSL2/Linux, resources, or port availability cannot be verified, record the blocker in the Phase 03.1 UAT file and do not mark the phase complete.
+If Docker, Linux VM resources, `docker.service`, or port reachability cannot be verified, record the blocker in the Phase 03.1 UAT file and do not mark the phase complete.
 
 ## Install Approval Gate
 
@@ -63,7 +80,7 @@ Coolify's official quick install is Linux/server-oriented and can require `sudo`
 
 Run installation only after explicit operator approval.
 
-Preferred command inside the selected WSL2/Linux environment:
+Preferred command inside the local Linux VM:
 
 ```sh
 curl -fsSL https://cdn.coollabs.io/coolify/install.sh | sudo bash
@@ -71,12 +88,9 @@ curl -fsSL https://cdn.coollabs.io/coolify/install.sh | sudo bash
 
 If `sudo` requires a password, run this command directly in an interactive Ubuntu terminal and enter the password there. Do not paste Linux passwords, installer-generated secrets, or token values into agent chat, docs, `.planning`, or logs.
 
-If the installer fails with `Failed to restart docker.service: Unit docker.service not found.`, the Ubuntu distro is probably using Docker Desktop integration instead of a native, systemd-managed Docker Engine. Stop and choose one path before retrying:
+The WSL2 + Docker Desktop integration path was tried and rejected for this project because the installer failed with `Failed to restart docker.service: Unit docker.service not found.` In that mode, Docker is available from Ubuntu, but the Docker daemon is not managed by a local `docker.service` inside Ubuntu.
 
-- install and use native Docker Engine inside Ubuntu with systemd enabled; or
-- run Coolify on a real/local Linux VM instead of WSL2.
-
-Do not force the installer against Docker Desktop's internal `docker-desktop` distro.
+Do not force the installer against Docker Desktop's internal `docker-desktop` distro or a WSL distro that only uses Docker Desktop integration.
 
 If this path is not suitable for the local machine, follow Coolify's manual installation docs and record the reason in the UAT file.
 
@@ -86,7 +100,7 @@ After install or start, verify containers and UI:
 
 ```powershell
 docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
-Invoke-WebRequest -UseBasicParsing http://localhost:8000
+Invoke-WebRequest -UseBasicParsing http://<vm-ip-or-localhost>:8000
 ```
 
 If the installer prints a different local URL, use that exact URL and record only the URL, status, and non-secret evidence.
