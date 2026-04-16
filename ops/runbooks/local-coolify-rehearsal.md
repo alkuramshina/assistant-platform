@@ -71,6 +71,13 @@ curl -fsSL https://cdn.coollabs.io/coolify/install.sh | sudo bash
 
 If `sudo` requires a password, run this command directly in an interactive Ubuntu terminal and enter the password there. Do not paste Linux passwords, installer-generated secrets, or token values into agent chat, docs, `.planning`, or logs.
 
+If the installer fails with `Failed to restart docker.service: Unit docker.service not found.`, the Ubuntu distro is probably using Docker Desktop integration instead of a native, systemd-managed Docker Engine. Stop and choose one path before retrying:
+
+- install and use native Docker Engine inside Ubuntu with systemd enabled; or
+- run Coolify on a real/local Linux VM instead of WSL2.
+
+Do not force the installer against Docker Desktop's internal `docker-desktop` distro.
+
 If this path is not suitable for the local machine, follow Coolify's manual installation docs and record the reason in the UAT file.
 
 ## Verify Local Coolify
