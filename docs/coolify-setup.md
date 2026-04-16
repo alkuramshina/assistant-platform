@@ -1,5 +1,7 @@
 # Coolify Setup Path
 
+Phase 03.1 adds a local Coolify rehearsal before the live Coolify control-plane import. Use [`ops/runbooks/local-coolify-rehearsal.md`](../ops/runbooks/local-coolify-rehearsal.md) to verify the UI/import path locally when possible; Phase 4 remains the live Coolify import and deployment validation phase.
+
 Этот документ описывает подготовленный путь деплоя Nanobot Enterprise Pilot через Coolify.
 
 Статус Phase 2: здесь фиксируется ожидаемая форма импорта и checklist. Live Coolify UI validation относится к Phase 4, после появления private registry image в Phase 3.
@@ -128,6 +130,7 @@ DEFAULT_MODEL=openrouter/free
 
 ## Связанные Runbooks
 
+- Local Coolify rehearsal: [`ops/runbooks/local-coolify-rehearsal.md`](../ops/runbooks/local-coolify-rehearsal.md)
 - Первый запуск и local smoke test: [`ops/runbooks/first-deploy.md`](../ops/runbooks/first-deploy.md)
 - Redeploy и rollback: [`ops/runbooks/redeploy.md`](../ops/runbooks/redeploy.md)
 - Restore application data: [`ops/backup/restore.md`](../ops/backup/restore.md)
