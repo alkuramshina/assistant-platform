@@ -69,6 +69,8 @@ Preferred command inside the selected WSL2/Linux environment:
 curl -fsSL https://cdn.coollabs.io/coolify/install.sh | sudo bash
 ```
 
+If `sudo` requires a password, run this command directly in an interactive Ubuntu terminal and enter the password there. Do not paste Linux passwords, installer-generated secrets, or token values into agent chat, docs, `.planning`, or logs.
+
 If this path is not suitable for the local machine, follow Coolify's manual installation docs and record the reason in the UAT file.
 
 ## Verify Local Coolify
