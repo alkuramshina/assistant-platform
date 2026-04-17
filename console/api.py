@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import json
+import mimetypes
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 from . import db
 from .deploy import DeploymentEngine, DeploymentError, Runner
@@ -29,6 +30,7 @@ class ConsoleAPI(ThreadingHTTPServer):
 
 class ConsoleHandler(BaseHTTPRequestHandler):
     server: ConsoleAPI
+    static_root = Path(__file__).parent / "static"
 
     def do_GET(self) -> None:
         try:
@@ -49,6 +51,12 @@ class ConsoleHandler(BaseHTTPRequestHandler):
 
     def _handle_get(self) -> None:
         parts = self._path_parts()
+        if parts == []:
+            self._static_file("index.html")
+            return
+        if parts and parts[0] == "static":
+            self._static_file("/".join(parts[1:]))
+            return
         if parts == ["health"]:
             self._json({"ok": True})
             return
@@ -115,6 +123,31 @@ class ConsoleHandler(BaseHTTPRequestHandler):
 
     def _deployment(self) -> DeploymentEngine:
         return DeploymentEngine(self.server.bot_root, self.server.runner)
+
+    def _static_file(self, relative_path: str) -> None:
+        if not relative_path:
+            self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
+            return
+
+        target = (self.static_root / unquote(relative_path)).resolve()
+        root = self.static_root.resolve()
+        if root not in target.parents and target != root:
+            self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
+            return
+        if not target.is_file():
+            self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
+            return
+
+        body = target.read_bytes()
+        content_type = mimetypes.guess_type(target.name)[0] or "application/octet-stream"
+        if content_type.startswith("text/") or content_type == "application/javascript":
+            content_type += "; charset=utf-8"
+
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def _json_or_404(
         self,

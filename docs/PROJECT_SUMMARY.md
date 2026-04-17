@@ -14,7 +14,7 @@ customer server -> SSH installer -> console UI -> create bot -> Telegram -> acti
 
 1. Operator provides SSH access to a Linux server.
 2. Installer checks prerequisites and installs the console.
-3. Operator opens the console UI.
+3. Operator opens the local console UI.
 4. Operator creates a bot with:
    - bot name;
    - Telegram token;
@@ -56,6 +56,8 @@ Small server-side web app with API, UI, and SQLite persistence.
 - keep raw Telegram/provider secrets out of API responses and logs.
 
 Phase 6 console scope is local JSON API and SQLite persistence only. It binds to `127.0.0.1` by default and stores secret references, not secret values.
+
+Phase 8 console scope adds a minimal local UI for creating bots, listing statuses, starting/stopping bot Compose projects, and reading activity logs. It does not add authentication or prove the Telegram smoke path.
 
 ### Bot Instance
 

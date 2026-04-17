@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Nanobot Console</title>
+    <link rel="stylesheet" href="/static/styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Local prototype</p>
+          <h1>Nanobot Console</h1>
+        </div>
+        <button id="refresh" type="button">Refresh</button>
+      </header>
+
+      <p class="notice">
+        Bind this console locally or behind your own access control. Enter server-side secret file references, not raw Telegram or provider keys.
+      </p>
+
+      <section class="grid">
+        <form id="bot-form" class="panel" autocomplete="off">
+          <h2>Create bot</h2>
+          <label>
+            Bot name
+            <input name="name" required placeholder="support-bot">
+          </label>
+          <label>
+            Allowed Telegram user IDs
+            <input name="allowed_user_ids" placeholder="123456789,987654321">
+          </label>
+          <label>
+            Telegram token secret file
+            <input name="channel_secret_ref" placeholder="/opt/nanobot-console/secrets/bot-token">
+          </label>
+          <label>
+            Provider API key secret file
+            <input name="provider_secret_ref" placeholder="/opt/nanobot-console/secrets/provider-key">
+          </label>
+          <label>
+            Provider base URL
+            <input name="provider_base_url" placeholder="https://openrouter.ai/api/v1">
+          </label>
+          <label>
+            Model
+            <input name="provider_model" placeholder="openrouter/free-model">
+          </label>
+          <label>
+            System prompt
+            <textarea name="system_prompt" rows="4" placeholder="Be concise and useful."></textarea>
+          </label>
+          <button type="submit">Create bot</button>
+        </form>
+
+        <section class="panel">
+          <div class="section-head">
+            <h2>Bots</h2>
+            <span id="bot-count">0</span>
+          </div>
+          <div id="bots" class="bot-list" aria-live="polite"></div>
+        </section>
+
+        <section class="panel detail">
+          <div class="section-head">
+            <h2 id="selected-name">Select a bot</h2>
+            <span id="selected-status">idle</span>
+          </div>
+          <dl id="bot-details"></dl>
+          <div class="actions">
+            <button id="start" type="button" disabled>Start</button>
+            <button id="stop" type="button" disabled>Stop</button>
+          </div>
+          <p id="message" class="message" role="status"></p>
+        </section>
+
+        <section class="panel logs">
+          <div class="section-head">
+            <h2>Activity</h2>
+            <button id="reload-logs" type="button" disabled>Reload logs</button>
+          </div>
+          <div id="logs" class="log-list" aria-live="polite"></div>
+        </section>
+      </section>
+    </main>
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>
