@@ -50,6 +50,7 @@ Small server-side web app with API, UI, and SQLite persistence.
 - write secret files with restrictive permissions;
 - run Compose projects for each bot;
 - collect bot status and activity logs.
+- keep raw Telegram/provider secrets out of API responses and logs.
 
 ### Bot Instance
 
@@ -65,6 +66,18 @@ Each bot is isolated:
 
 Each bot has its own Compose project name, secrets, data, workspace, Telegram allowlist, provider config, and logs.
 
+### Activity Logs
+
+Record the minimum useful audit trail:
+
+- timestamp;
+- bot ID/name;
+- Telegram user ID;
+- user request;
+- assistant response;
+- provider/model;
+- status or error.
+
 ## Security Rules
 
 - Do not commit real secrets.
@@ -74,6 +87,7 @@ Each bot has its own Compose project name, secrets, data, workspace, Telegram al
 - Telegram allowlist is required from first deployment.
 - Store provider and Telegram keys as server-side secret files.
 - Treat activity logs as sensitive user content.
+- Require explicit operator approval before the installer changes host packages or services.
 
 ## Roadmap
 
