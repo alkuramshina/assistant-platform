@@ -59,6 +59,8 @@ Phase 6 console scope is local JSON API and SQLite persistence only. It binds to
 
 Phase 8 console scope adds a minimal local UI for creating bots, listing statuses, starting/stopping bot Compose projects, and reading activity logs. It does not add authentication or prove the Telegram smoke path.
 
+Phase 9 must prove the real installer-to-UI path on a Linux server or VM. The operator should not manually create console directories, copy app files, create secret folders, or run `python -m console`; the installer prepares the host, starts the console, and prints the URL. The operator then uses the UI to enter bot/provider settings, start one bot, complete a Telegram smoke test, and see request/response logs.
+
 ### Bot Instance
 
 Each bot is isolated:
@@ -107,7 +109,7 @@ Record the minimum useful audit trail:
 | 6 | Console API and persistence |
 | 7 | Bot template deployment engine |
 | 8 | Minimal console UI |
-| 9 | Telegram smoke path and activity logs |
+| 9 | Installer-to-UI Telegram smoke path and activity logs |
 | 10 | Multi-bot isolation and prototype hardening |
 
 ## Out Of Scope
