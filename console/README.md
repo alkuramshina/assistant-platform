@@ -20,3 +20,5 @@ Endpoints:
 - `POST /api/bots/<id>/logs`
 
 This API is local-prototype only. It stores secret references, not Telegram tokens or provider API keys.
+
+Start/stop actions render per-bot Compose projects under the bot root. Each bot gets separate `data`, `workspace`, and `secrets` directories.

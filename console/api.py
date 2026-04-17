@@ -9,13 +9,22 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from . import db
+from .deploy import DeploymentEngine, DeploymentError, Runner
 from .models import BotInput, LogInput
 
 
 class ConsoleAPI(ThreadingHTTPServer):
-    def __init__(self, server_address: tuple[str, int], db_path: str | Path):
+    def __init__(
+        self,
+        server_address: tuple[str, int],
+        db_path: str | Path,
+        bot_root: str | Path | None = None,
+        runner: Runner | None = None,
+    ):
         super().__init__(server_address, ConsoleHandler)
         self.db_path = Path(db_path)
+        self.bot_root = Path(bot_root or self.db_path.parent / "bots")
+        self.runner = runner
 
 
 class ConsoleHandler(BaseHTTPRequestHandler):
@@ -68,8 +77,16 @@ class ConsoleHandler(BaseHTTPRequestHandler):
                 self._json({"bot": bot}, HTTPStatus.CREATED)
                 return
             if len(parts) == 4 and parts[:2] == ["api", "bots"] and parts[3] in {"start", "stop"}:
-                status = "running" if parts[3] == "start" else "stopped"
-                bot = db.set_bot_status(conn, parts[2], status)
+                bot = db.get_bot(conn, parts[2])
+                if bot is None:
+                    self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
+                    return
+                try:
+                    result = self._deployment().start(bot) if parts[3] == "start" else self._deployment().stop(bot)
+                except DeploymentError as exc:
+                    self._json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                    return
+                bot = db.set_bot_status(conn, parts[2], result["status"])
                 self._json_or_404("bot", bot)
                 return
             if len(parts) == 4 and parts[:2] == ["api", "bots"] and parts[3] == "logs":
@@ -96,6 +113,9 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             raise ValueError("JSON body must be an object")
         return parsed
 
+    def _deployment(self) -> DeploymentEngine:
+        return DeploymentEngine(self.server.bot_root, self.server.runner)
+
     def _json_or_404(
         self,
         key: str,
@@ -119,8 +139,13 @@ class ConsoleHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
 
-def serve(db_path: str | Path, host: str = "127.0.0.1", port: int = 8787) -> None:
+def serve(
+    db_path: str | Path,
+    host: str = "127.0.0.1",
+    port: int = 8787,
+    bot_root: str | Path | None = None,
+) -> None:
     db.connect(db_path).close()
-    server = ConsoleAPI((host, port), db_path)
+    server = ConsoleAPI((host, port), db_path, bot_root)
     print(f"console API listening on http://{host}:{port}")
     server.serve_forever()

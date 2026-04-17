@@ -71,6 +71,8 @@ Each bot is isolated:
 
 Each bot has its own Compose project name, secrets, data, workspace, Telegram allowlist, provider config, and logs.
 
+Phase 7 deployment scope renders per-bot Compose files and starts/stops them from the console host. Bot containers do not receive host Docker control.
+
 ### Activity Logs
 
 Record the minimum useful audit trail:

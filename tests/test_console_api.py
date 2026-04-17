@@ -11,11 +11,25 @@ from pathlib import Path
 from console.api import ConsoleAPI
 
 
+class FakeRunner:
+    def __init__(self) -> None:
+        self.commands: list[list[str]] = []
+
+    def run(self, command: list[str], *, cwd: Path | None = None) -> None:
+        self.commands.append(command)
+
+
 class APITest(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory()
         self.db_path = Path(self.tmp.name) / "console.db"
-        self.server = ConsoleAPI(("127.0.0.1", 0), self.db_path)
+        self.bot_root = Path(self.tmp.name) / "bots"
+        self.channel_secret = Path(self.tmp.name) / "channel"
+        self.provider_secret = Path(self.tmp.name) / "provider"
+        self.channel_secret.write_text("super-secret-channel", encoding="utf-8")
+        self.provider_secret.write_text("super-secret-provider", encoding="utf-8")
+        self.runner = FakeRunner()
+        self.server = ConsoleAPI(("127.0.0.1", 0), self.db_path, self.bot_root, self.runner)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         host, port = self.server.server_address
@@ -53,8 +67,8 @@ class APITest(unittest.TestCase):
                 "provider_base_url": "https://provider.example/v1",
                 "provider_model": "free-model",
                 "system_prompt": "Be concise",
-                "channel_secret_ref": "/opt/nanobot-console/bots/x/secrets/channel",
-                "provider_secret_ref": "/opt/nanobot-console/bots/x/secrets/provider",
+                "channel_secret_ref": str(self.channel_secret),
+                "provider_secret_ref": str(self.provider_secret),
             },
         )
         self.assertEqual(status, 201)
@@ -72,9 +86,12 @@ class APITest(unittest.TestCase):
 
         _, started = self.post(f"/api/bots/{bot['id']}/start", {})
         self.assertEqual(started["bot"]["status"], "running")
+        self.assertIn("up", self.runner.commands[-1])
+        self.assertTrue((self.bot_root / bot["id"] / "docker-compose.yml").is_file())
 
         _, stopped = self.post(f"/api/bots/{bot['id']}/stop", {})
         self.assertEqual(stopped["bot"]["status"], "stopped")
+        self.assertIn("down", self.runner.commands[-1])
 
     def test_activity_logs_persist(self) -> None:
         _, created = self.post("/api/bots", {"name": "support"})
@@ -101,7 +118,7 @@ class APITest(unittest.TestCase):
         self.server.server_close()
         self.thread.join(timeout=5)
 
-        self.server = ConsoleAPI(("127.0.0.1", 0), self.db_path)
+        self.server = ConsoleAPI(("127.0.0.1", 0), self.db_path, self.bot_root, self.runner)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         host, port = self.server.server_address
