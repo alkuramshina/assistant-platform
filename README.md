@@ -36,10 +36,19 @@ python installer\install.py user@server
 
 Phase 5 installer does not collect Telegram tokens or provider API keys.
 
+## Console API
+
+```powershell
+python -m console --db .local\console.db
+```
+
+The API binds to `127.0.0.1` by default and stores secret references only.
+
 ## Useful Checks
 
 ```powershell
 docker compose config
 python -m py_compile installer\install.py
+python -m unittest discover -s tests
 rg -n "Coolify|coolify|GHCR|Azure OAuth" README.md docs AGENTS.md
 ```

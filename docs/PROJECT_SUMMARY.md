@@ -48,11 +48,14 @@ Phase 5 installer scope is host bootstrap only. It does not collect Telegram tok
 Small server-side web app with API, UI, and SQLite persistence.
 
 - create/list/start/stop bot instances;
+- persist bot records and activity logs in SQLite;
 - render per-bot Compose files;
 - write secret files with restrictive permissions;
 - run Compose projects for each bot;
 - collect bot status and activity logs.
 - keep raw Telegram/provider secrets out of API responses and logs.
+
+Phase 6 console scope is local JSON API and SQLite persistence only. It binds to `127.0.0.1` by default and stores secret references, not secret values.
 
 ### Bot Instance
 
