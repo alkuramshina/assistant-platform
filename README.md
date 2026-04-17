@@ -27,9 +27,19 @@ server/VM -> SSH install -> console UI -> create bot -> Telegram chat -> activit
 - require Telegram allowlist from first deploy;
 - show request/response activity logs per bot.
 
+## Installer
+
+```powershell
+python installer\install.py user@server --dry-run
+python installer\install.py user@server
+```
+
+Phase 5 installer does not collect Telegram tokens or provider API keys.
+
 ## Useful Checks
 
 ```powershell
 docker compose config
+python -m py_compile installer\install.py
 rg -n "Coolify|coolify|GHCR|Azure OAuth" README.md docs AGENTS.md
 ```

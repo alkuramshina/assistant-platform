@@ -16,34 +16,28 @@ services:
       NANOBOT_LOG_LEVEL: ${NANOBOT_LOG_LEVEL:-INFO}
       NANOBOT_GATEWAY_PORT: ${NANOBOT_GATEWAY_PORT:-18790}
 
-      # Agent defaults
       DEFAULT_PROVIDER: ${DEFAULT_PROVIDER:-openrouter}
       DEFAULT_MODEL: ${DEFAULT_MODEL:-openrouter/free}
       SYSTEM_PROMPT: ${SYSTEM_PROMPT:-You are a concise and reliable work assistant.}
 
-      # LLM providers. Secrets are mounted from Docker Compose secrets.
       OPENROUTER_API_KEY_FILE: /run/secrets/openrouter_api_key
       OPENAI_API_KEY_FILE: /run/secrets/openai_api_key
       ANTHROPIC_API_KEY_FILE: /run/secrets/anthropic_api_key
       VLLM_API_BASE: ${VLLM_API_BASE:-}
       VLLM_API_KEY_FILE: /run/secrets/vllm_api_key
 
-      # Channel selection
       CHANNEL_TYPE: ${CHANNEL_TYPE:-telegram}
       CHANNEL_ALLOW_FROM: ${CHANNEL_ALLOW_FROM:-}
       CHANNEL_GROUP_POLICY: ${CHANNEL_GROUP_POLICY:-mention}
       CHANNEL_GROUP_ALLOW_FROM: ${CHANNEL_GROUP_ALLOW_FROM:-}
 
-      # Telegram
       TELEGRAM_ENABLED: ${TELEGRAM_ENABLED:-true}
       TELEGRAM_TOKEN_FILE: /run/secrets/telegram_token
 
-      # Slack
       SLACK_ENABLED: ${SLACK_ENABLED:-false}
       SLACK_BOT_TOKEN_FILE: /run/secrets/slack_bot_token
       SLACK_APP_TOKEN_FILE: /run/secrets/slack_app_token
 
-      # Feishu
       FEISHU_ENABLED: ${FEISHU_ENABLED:-false}
       FEISHU_APP_ID: ${FEISHU_APP_ID:-}
       FEISHU_APP_SECRET_FILE: /run/secrets/feishu_app_secret
@@ -72,58 +66,6 @@ services:
       start_period: 20s
     command: ["/app/entrypoint.sh"]
 
-  # Ручной backup job. Запускается только при необходимости:
-  # docker compose --profile ops run --rm backup
-  backup:
-    image: restic/restic:0.17.3
-    profiles: ["ops"]
-    restart: "no"
-    environment:
-      APP_NAME: ${APP_NAME:-nanobot-pilot}
-      RESTIC_REPOSITORY: ${RESTIC_REPOSITORY:-}
-      RESTIC_PASSWORD_FILE: /run/secrets/restic_password
-      AWS_ACCESS_KEY_ID_FILE: /run/secrets/backup_access_key_id
-      AWS_SECRET_ACCESS_KEY_FILE: /run/secrets/backup_secret_access_key
-      AWS_DEFAULT_REGION: ${BACKUP_REGION:-us-east-1}
-    volumes:
-      - nanobot_data:/backup/nanobot_data:ro
-      - nanobot_workspace:/backup/nanobot_workspace:ro
-      - ./ops/backup:/scripts:ro
-    secrets:
-      - restic_password
-      - backup_access_key_id
-      - backup_secret_access_key
-    entrypoint: ["/bin/sh", "/scripts/backup.sh"]
-
-  # Ручной restore job. Перед запуском остановить nanobot.
-  restore:
-    image: restic/restic:0.17.3
-    profiles: ["ops"]
-    restart: "no"
-    environment:
-      APP_NAME: ${APP_NAME:-nanobot-pilot}
-      RESTIC_REPOSITORY: ${RESTIC_REPOSITORY:-}
-      RESTIC_PASSWORD_FILE: /run/secrets/restic_password
-      AWS_ACCESS_KEY_ID_FILE: /run/secrets/backup_access_key_id
-      AWS_SECRET_ACCESS_KEY_FILE: /run/secrets/backup_secret_access_key
-      AWS_DEFAULT_REGION: ${BACKUP_REGION:-us-east-1}
-    volumes:
-      - nanobot_data:/backup/nanobot_data
-      - nanobot_workspace:/backup/nanobot_workspace
-    secrets:
-      - restic_password
-      - backup_access_key_id
-      - backup_secret_access_key
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        export RESTIC_PASSWORD="$$(cat "$${RESTIC_PASSWORD_FILE}")"
-        export AWS_ACCESS_KEY_ID="$$(cat "$${AWS_ACCESS_KEY_ID_FILE}")"
-        export AWS_SECRET_ACCESS_KEY="$$(cat "$${AWS_SECRET_ACCESS_KEY_FILE}")"
-        exec restic "$@"
-      - restic
-
 volumes:
   nanobot_data:
   nanobot_workspace:
@@ -145,9 +87,3 @@ secrets:
     environment: SLACK_APP_TOKEN
   feishu_app_secret:
     environment: FEISHU_APP_SECRET
-  restic_password:
-    environment: RESTIC_PASSWORD
-  backup_access_key_id:
-    environment: BACKUP_ACCESS_KEY_ID
-  backup_secret_access_key:
-    environment: BACKUP_SECRET_ACCESS_KEY

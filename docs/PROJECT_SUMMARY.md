@@ -41,6 +41,8 @@ Installs or updates the console on the target server.
 - install console service files and bot templates;
 - print the console URL.
 
+Phase 5 installer scope is host bootstrap only. It does not collect Telegram tokens or provider API keys.
+
 ### Console
 
 Small server-side web app with API, UI, and SQLite persistence.
