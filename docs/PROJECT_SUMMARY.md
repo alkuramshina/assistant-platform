@@ -1,5 +1,7 @@
 # Nanobot Enterprise Pilot — Project Summary
 
+> Current direction (2026-04-17): the project has pivoted away from mandatory Coolify deployment toward an SSH-installed multi-bot console prototype. Use [`docs/SSH_CONSOLE_PROTOTYPE.md`](SSH_CONSOLE_PROTOTYPE.md) as the active product direction. Older Coolify sections are historical until explicitly revived.
+
 Этот документ — продуктовый и инфраструктурный source of truth для пилота. Агентские рабочие артефакты вроде `.planning/` и локальные настройки вроде `.codex/` не являются источником правды; важные решения из них должны переноситься сюда или в соседние документы `docs/architecture.md`, `docs/coolify-setup.md` и runbooks.
 
 ## A. Контекст проекта

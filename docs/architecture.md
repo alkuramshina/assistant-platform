@@ -1,5 +1,7 @@
 # Architecture
 
+> Current direction (2026-04-17): the active prototype architecture is the SSH-installed multi-bot console described in [`docs/SSH_CONSOLE_PROTOTYPE.md`](SSH_CONSOLE_PROTOTYPE.md). Older Coolify architecture notes are historical until explicitly revived.
+
 Этот документ описывает логическую архитектуру Nanobot Enterprise Pilot. Краткий продуктовый и инфраструктурный source of truth остается в [`docs/PROJECT_SUMMARY.md`](PROJECT_SUMMARY.md); здесь собраны детали runtime, сред, data flow и ограничений.
 
 ## Роль Документов
