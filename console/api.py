@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import mimetypes
+import os
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -20,11 +21,13 @@ class ConsoleAPI(ThreadingHTTPServer):
         server_address: tuple[str, int],
         db_path: str | Path,
         bot_root: str | Path | None = None,
+        secret_root: str | Path | None = None,
         runner: Runner | None = None,
     ):
         super().__init__(server_address, ConsoleHandler)
         self.db_path = Path(db_path)
         self.bot_root = Path(bot_root or self.db_path.parent / "bots")
+        self.secret_root = Path(secret_root or self.db_path.parent / "secrets")
         self.runner = runner
 
 
@@ -81,7 +84,9 @@ class ConsoleHandler(BaseHTTPRequestHandler):
         payload = self._read_json()
         with db.connect(self.server.db_path) as conn:
             if parts == ["api", "bots"]:
-                bot = db.create_bot(conn, BotInput.from_payload(payload))
+                data = BotInput.from_payload(payload)
+                bot = db.create_bot(conn, data)
+                bot = self._materialize_secrets(conn, bot, data)
                 self._json({"bot": bot}, HTTPStatus.CREATED)
                 return
             if len(parts) == 4 and parts[:2] == ["api", "bots"] and parts[3] in {"start", "stop"}:
@@ -90,7 +95,10 @@ class ConsoleHandler(BaseHTTPRequestHandler):
                     self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
                     return
                 try:
-                    result = self._deployment().start(bot) if parts[3] == "start" else self._deployment().stop(bot)
+                    if parts[3] == "start":
+                        result = self._deployment().start(self._bot_with_runtime(bot))
+                    else:
+                        result = self._deployment().stop(bot)
                 except DeploymentError as exc:
                     self._json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
                     return
@@ -123,6 +131,52 @@ class ConsoleHandler(BaseHTTPRequestHandler):
 
     def _deployment(self) -> DeploymentEngine:
         return DeploymentEngine(self.server.bot_root, self.server.runner)
+
+    def _materialize_secrets(
+        self,
+        conn: object,
+        bot: dict[str, object],
+        data: BotInput,
+    ) -> dict[str, object]:
+        channel_ref = data.channel_secret_ref
+        provider_ref = data.provider_secret_ref
+
+        if data.channel_secret_value:
+            channel_ref = str(self._write_secret(str(bot["id"]), "telegram-token", data.channel_secret_value))
+        if data.provider_secret_value:
+            provider_ref = str(self._write_secret(str(bot["id"]), "provider-key", data.provider_secret_value))
+
+        if channel_ref != bot.get("channel_secret_ref") or provider_ref != bot.get("provider_secret_ref"):
+            updated = db.set_bot_secret_refs(
+                conn,  # type: ignore[arg-type]
+                str(bot["id"]),
+                channel_secret_ref=channel_ref,
+                provider_secret_ref=provider_ref,
+            )
+            if updated is not None:
+                return updated
+        return bot
+
+    def _write_secret(self, bot_id: str, name: str, value: str) -> Path:
+        engine = DeploymentEngine(self.server.bot_root)
+        safe_bot = engine.safe_id(bot_id)
+        safe_name = engine.safe_id(name)
+        self.server.secret_root.mkdir(parents=True, exist_ok=True)
+        path = (self.server.secret_root / f"{safe_bot}-{safe_name}").resolve()
+        root = self.server.secret_root.resolve()
+        if root not in path.parents:
+            raise ValueError("invalid secret path")
+        flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
+        fd = os.open(path, flags, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(value)
+        path.chmod(0o600)
+        return path
+
+    def _bot_with_runtime(self, bot: dict[str, object]) -> dict[str, object]:
+        runtime = dict(bot)
+        runtime["activity_url"] = f"http://host.docker.internal:{self.server.server_port}/api/bots/{bot['id']}/logs"
+        return runtime
 
     def _static_file(self, relative_path: str) -> None:
         if not relative_path:
@@ -177,8 +231,9 @@ def serve(
     host: str = "127.0.0.1",
     port: int = 8787,
     bot_root: str | Path | None = None,
+    secret_root: str | Path | None = None,
 ) -> None:
     db.connect(db_path).close()
-    server = ConsoleAPI((host, port), db_path, bot_root)
+    server = ConsoleAPI((host, port), db_path, bot_root, secret_root)
     print(f"console API listening on http://{host}:{port}")
     server.serve_forever()

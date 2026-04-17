@@ -139,6 +139,25 @@ def set_bot_status(conn: sqlite3.Connection, bot_id: str, status: str) -> dict[s
     return get_bot(conn, bot_id)
 
 
+def set_bot_secret_refs(
+    conn: sqlite3.Connection,
+    bot_id: str,
+    *,
+    channel_secret_ref: str,
+    provider_secret_ref: str,
+) -> dict[str, Any] | None:
+    conn.execute(
+        """
+        UPDATE bots
+        SET channel_secret_ref = ?, provider_secret_ref = ?, updated_at = ?
+        WHERE id = ?
+        """,
+        (channel_secret_ref, provider_secret_ref, _now(), bot_id),
+    )
+    conn.commit()
+    return get_bot(conn, bot_id)
+
+
 def add_log(conn: sqlite3.Connection, bot_id: str, data: LogInput) -> dict[str, Any] | None:
     if get_bot(conn, bot_id) is None:
         return None

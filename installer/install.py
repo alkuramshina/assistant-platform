@@ -7,6 +7,8 @@ import argparse
 import shlex
 import subprocess
 import sys
+import tarfile
+import tempfile
 from pathlib import Path
 
 
@@ -14,6 +16,14 @@ DEFAULT_REMOTE_ROOT = "/opt/nanobot-console"
 ROOT = Path(__file__).resolve().parents[1]
 REMOTE_BOOTSTRAP = ROOT / "installer" / "remote" / "bootstrap.sh"
 VERSION = "prototype-phase-5"
+PACKAGE_PATHS = [
+    "console",
+    "docker",
+    "Dockerfile",
+    "docker-compose.yml",
+    "README.md",
+    "docs/PROJECT_SUMMARY.md",
+]
 
 
 def parse_args() -> argparse.Namespace:
@@ -27,6 +37,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--port", default="22", help="SSH port, default: 22")
     parser.add_argument("--identity-file", help="SSH private key path")
     parser.add_argument("--remote-root", default=DEFAULT_REMOTE_ROOT, help="Remote install root")
+    parser.add_argument("--console-port", default="8787", help="Console port, default: 8787")
     parser.add_argument("--dry-run", action="store_true", help="Probe and print planned changes only")
     parser.add_argument("--yes", action="store_true", help="Approve host changes without prompting")
     return parser.parse_args()
@@ -75,7 +86,8 @@ def run_ssh(
 def run_bootstrap(args: argparse.Namespace, mode: str) -> subprocess.CompletedProcess[str]:
     script = REMOTE_BOOTSTRAP.read_text(encoding="utf-8")
     remote_root = shlex.quote(args.remote_root)
-    return run_ssh(args, f"sh -s -- {shlex.quote(mode)} {remote_root}", input_text=script)
+    console_port = shlex.quote(str(args.console_port))
+    return run_ssh(args, f"sh -s -- {shlex.quote(mode)} {remote_root} {console_port}", input_text=script)
 
 
 def parse_probe(output: str) -> dict[str, str]:
@@ -132,6 +144,37 @@ def upload_scaffold(args: argparse.Namespace) -> None:
     run_ssh(args, command)
 
 
+def package_app() -> Path:
+    tmp = tempfile.NamedTemporaryFile(prefix="nanobot-console-", suffix=".tar.gz", delete=False)
+    tmp_path = Path(tmp.name)
+    tmp.close()
+    with tarfile.open(tmp_path, "w:gz") as archive:
+        for item in PACKAGE_PATHS:
+            source = ROOT / item
+            if source.exists():
+                archive.add(source, arcname=item)
+    return tmp_path
+
+
+def upload_app(args: argparse.Namespace) -> None:
+    package = package_app()
+    remote_tmp = "/tmp/nanobot-console-app.tar.gz"
+    try:
+        run([*scp_base(args), str(package), f"{args.target}:{remote_tmp}"])
+    finally:
+        package.unlink(missing_ok=True)
+
+    remote_root = shlex.quote(args.remote_root)
+    remote_tmp_q = shlex.quote(remote_tmp)
+    command = (
+        f"sudo rm -rf {remote_root}/app && "
+        f"sudo mkdir -p {remote_root}/app && "
+        f"sudo tar -xzf {remote_tmp_q} -C {remote_root}/app && "
+        f"sudo rm -f {remote_tmp_q}"
+    )
+    run_ssh(args, command)
+
+
 def main() -> int:
     args = parse_args()
     if not REMOTE_BOOTSTRAP.exists():
@@ -153,7 +196,10 @@ def main() -> int:
         print()
         print("Dry-run only. Planned apply steps:")
         print(f"  - create/update {args.remote_root}")
-        print("  - upload bootstrap.sh and VERSION scaffold files")
+        print("  - upload app package")
+        print("  - install/update console systemd service")
+        print("  - build/refresh nanobot-enterprise-pilot:dev image")
+        print(f"  - print UI URL on port {args.console_port}")
         if missing:
             print(f"  - prerequisite attention needed: {', '.join(missing)}")
         return 0
@@ -166,11 +212,19 @@ def main() -> int:
     apply_result = run_bootstrap(args, "apply")
     print(apply_result.stdout, end="")
 
-    print("Uploading scaffold files...")
+    print("Uploading bootstrap scaffold...")
     upload_scaffold(args)
 
+    print("Uploading app package...")
+    upload_app(args)
+
+    print("Finalizing console service...")
+    finalize_result = run_bootstrap(args, "finalize")
+    print(finalize_result.stdout, end="")
+
     print("Done.")
-    print(f"Console scaffold: {args.remote_root}")
+    print(f"Console root: {args.remote_root}")
+    print(f"Console URL: http://{args.target.split('@')[-1]}:{args.console_port}/")
     return 0
 
 

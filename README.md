@@ -34,12 +34,12 @@ python installer\install.py user@server --dry-run
 python installer\install.py user@server
 ```
 
-Phase 5 installer does not collect Telegram tokens or provider API keys.
+The installer prepares the server, starts the console service, and prints the UI URL. Telegram/provider credentials are entered in the UI.
 
 ## Console API
 
 ```powershell
-python -m console --db .local\console.db
+python -m console --db .local\console.db --bot-root .local\bots --secret-root .local\secrets
 ```
 
 The API binds to `127.0.0.1` by default and stores secret references only.

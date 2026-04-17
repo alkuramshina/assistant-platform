@@ -121,9 +121,13 @@ class DeploymentEngine:
       CHANNEL_TYPE: telegram
       CHANNEL_ALLOW_FROM: {allow}
       TELEGRAM_ENABLED: "true"
+      NANOBOT_CONSOLE_BOT_ID: {self._quote(str(bot.get("id", "")))}
+      NANOBOT_CONSOLE_ACTIVITY_URL: {self._quote(str(bot.get("activity_url", "")))}
     volumes:
       - {data}:/home/app/.nanobot
       - {workspace}:/workspace
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     secrets:
       - provider_secret
       - channel_secret

@@ -39,6 +39,8 @@ Installs or updates the console on the target server.
 - request approval before installing missing prerequisites;
 - create `/opt/nanobot-console`;
 - install console service files and bot templates;
+- upload the console app and build the local bot image;
+- start the console service;
 - print the console URL.
 
 Phase 5 installer scope is host bootstrap only. It does not collect Telegram tokens or provider API keys.

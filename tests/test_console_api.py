@@ -24,12 +24,13 @@ class APITest(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.db_path = Path(self.tmp.name) / "console.db"
         self.bot_root = Path(self.tmp.name) / "bots"
+        self.secret_root = Path(self.tmp.name) / "secrets"
         self.channel_secret = Path(self.tmp.name) / "channel"
         self.provider_secret = Path(self.tmp.name) / "provider"
         self.channel_secret.write_text("super-secret-channel", encoding="utf-8")
         self.provider_secret.write_text("super-secret-provider", encoding="utf-8")
         self.runner = FakeRunner()
-        self.server = ConsoleAPI(("127.0.0.1", 0), self.db_path, self.bot_root, self.runner)
+        self.server = ConsoleAPI(("127.0.0.1", 0), self.db_path, self.bot_root, self.secret_root, self.runner)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         host, port = self.server.server_address
@@ -118,7 +119,7 @@ class APITest(unittest.TestCase):
         self.server.server_close()
         self.thread.join(timeout=5)
 
-        self.server = ConsoleAPI(("127.0.0.1", 0), self.db_path, self.bot_root, self.runner)
+        self.server = ConsoleAPI(("127.0.0.1", 0), self.db_path, self.bot_root, self.secret_root, self.runner)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         host, port = self.server.server_address
@@ -131,6 +132,30 @@ class APITest(unittest.TestCase):
         with self.assertRaises(urllib.error.HTTPError) as cm:
             self.get("/api/bots/missing")
         self.assertEqual(cm.exception.code, 404)
+
+    def test_secret_values_are_written_as_refs_only(self) -> None:
+        status, created = self.post(
+            "/api/bots",
+            {
+                "name": "smoke",
+                "allowed_user_ids": "123",
+                "channel_secret_value": "telegram-secret",
+                "provider_secret_value": "provider-secret",
+            },
+        )
+
+        self.assertEqual(status, 201)
+        serialized = json.dumps(created)
+        self.assertNotIn("telegram-secret", serialized)
+        self.assertNotIn("provider-secret", serialized)
+        bot = created["bot"]
+        channel_ref = Path(bot["channel_secret_ref"])
+        provider_ref = Path(bot["provider_secret_ref"])
+        self.assertTrue(channel_ref.is_file())
+        self.assertTrue(provider_ref.is_file())
+        self.assertEqual(channel_ref.read_text(encoding="utf-8"), "telegram-secret")
+        self.assertEqual(provider_ref.read_text(encoding="utf-8"), "provider-secret")
+        self.assertTrue(channel_ref.is_relative_to(self.secret_root))
 
 
 if __name__ == "__main__":

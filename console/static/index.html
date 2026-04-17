@@ -32,11 +32,19 @@
             <input name="allowed_user_ids" placeholder="123456789,987654321">
           </label>
           <label>
-            Telegram token secret file
+            Telegram token
+            <input name="channel_secret_value" type="password" placeholder="Written to a server-side secret file">
+          </label>
+          <label>
+            Existing Telegram token secret file
             <input name="channel_secret_ref" placeholder="/opt/nanobot-console/secrets/bot-token">
           </label>
           <label>
-            Provider API key secret file
+            Provider API key
+            <input name="provider_secret_value" type="password" placeholder="Written to a server-side secret file">
+          </label>
+          <label>
+            Existing provider API key secret file
             <input name="provider_secret_ref" placeholder="/opt/nanobot-console/secrets/provider-key">
           </label>
           <label>

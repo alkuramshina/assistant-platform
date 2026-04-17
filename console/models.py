@@ -15,6 +15,8 @@ class BotInput:
     system_prompt: str = ""
     channel_secret_ref: str = ""
     provider_secret_ref: str = ""
+    channel_secret_value: str = ""
+    provider_secret_value: str = ""
 
     @classmethod
     def from_payload(cls, payload: dict[str, Any]) -> "BotInput":
@@ -29,6 +31,8 @@ class BotInput:
             system_prompt=str(payload.get("system_prompt", "")).strip(),
             channel_secret_ref=str(payload.get("channel_secret_ref", "")).strip(),
             provider_secret_ref=str(payload.get("provider_secret_ref", "")).strip(),
+            channel_secret_value=str(payload.get("channel_secret_value", "")).strip(),
+            provider_secret_value=str(payload.get("provider_secret_value", "")).strip(),
         )
 
 

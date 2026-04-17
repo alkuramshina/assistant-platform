@@ -39,6 +39,8 @@ class ConsoleUITest(unittest.TestCase):
         self.assertIn("Stop", body)
         self.assertIn("Activity", body)
         self.assertIn("secret file", body)
+        self.assertIn("Telegram token", body)
+        self.assertIn("Provider API key", body)
         self.assertIn("/static/app.js", body)
 
     def test_static_assets_include_api_wiring(self) -> None:
@@ -50,6 +52,7 @@ class ConsoleUITest(unittest.TestCase):
         self.assertIn("/start", body)
         self.assertIn("/stop", body)
         self.assertNotIn("localStorage", body)
+        self.assertNotIn("sessionStorage", body)
 
     def test_static_css_is_served(self) -> None:
         content_type, body = self.read("/static/styles.css")

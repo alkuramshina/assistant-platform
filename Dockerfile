@@ -19,6 +19,7 @@ RUN pip install --no-cache-dir "${NANOBOT_PACKAGE}"
 
 COPY docker/entrypoint.sh /app/entrypoint.sh
 COPY docker/generate_config.py /app/generate_config.py
+COPY docker/sitecustomize.py /app/sitecustomize.py
 
 RUN chmod +x /app/entrypoint.sh \
     && mkdir -p /home/app/.nanobot /workspace \

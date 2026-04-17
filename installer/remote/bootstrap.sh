@@ -3,6 +3,8 @@ set -eu
 
 MODE="${1:-probe}"
 REMOTE_ROOT="${2:-/opt/nanobot-console}"
+CONSOLE_PORT="${3:-8787}"
+SERVICE_NAME="nanobot-console"
 
 has_cmd() {
   command -v "$1" >/dev/null 2>&1
@@ -57,7 +59,7 @@ install_prereqs() {
 
   if has_cmd apt-get; then
     sudo apt-get update
-    sudo apt-get install -y ca-certificates curl docker.io docker-compose-plugin
+    sudo apt-get install -y ca-certificates curl python3 docker.io docker-compose-plugin
     return 0
   fi
 
@@ -69,13 +71,56 @@ apply() {
   install_prereqs
   sudo mkdir -p \
     "$REMOTE_ROOT" \
+    "$REMOTE_ROOT/app" \
     "$REMOTE_ROOT/bin" \
     "$REMOTE_ROOT/bots" \
+    "$REMOTE_ROOT/secrets" \
     "$REMOTE_ROOT/templates" \
     "$REMOTE_ROOT/logs"
   sudo chmod 0755 "$REMOTE_ROOT"
+  sudo chmod 0700 "$REMOTE_ROOT/secrets"
   printf 'remote_root=%s\n' "$REMOTE_ROOT"
   printf 'apply=ok\n'
+}
+
+finalize() {
+  if [ ! -d "$REMOTE_ROOT/app/console" ]; then
+    printf 'error=app_not_uploaded\n' >&2
+    return 1
+  fi
+
+  if has_cmd docker; then
+    sudo docker build -t nanobot-enterprise-pilot:dev "$REMOTE_ROOT/app"
+  fi
+
+  if has_cmd systemctl; then
+    sudo tee "/etc/systemd/system/$SERVICE_NAME.service" >/dev/null <<EOF
+[Unit]
+Description=Nanobot Console Prototype
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=$REMOTE_ROOT/app
+ExecStart=/usr/bin/python3 -m console --db $REMOTE_ROOT/console.db --bot-root $REMOTE_ROOT/bots --secret-root $REMOTE_ROOT/secrets --host 0.0.0.0 --port $CONSOLE_PORT
+Restart=unless-stopped
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    sudo systemctl daemon-reload
+    sudo systemctl enable "$SERVICE_NAME"
+    sudo systemctl restart "$SERVICE_NAME"
+    printf 'service=%s\n' "$SERVICE_NAME"
+    printf 'service_status=%s\n' "$(systemctl is-active "$SERVICE_NAME" 2>/dev/null || printf unknown)"
+  else
+    printf 'service=systemd_missing\n'
+  fi
+
+  printf 'console_url=http://SERVER:%s/\n' "$CONSOLE_PORT"
+  printf 'finalize=ok\n'
 }
 
 case "$MODE" in
@@ -85,8 +130,11 @@ case "$MODE" in
   apply)
     apply
     ;;
+  finalize)
+    finalize
+    ;;
   *)
-    printf 'usage: %s probe|apply [/opt/nanobot-console]\n' "$0" >&2
+    printf 'usage: %s probe|apply|finalize [/opt/nanobot-console] [8787]\n' "$0" >&2
     exit 2
     ;;
 esac

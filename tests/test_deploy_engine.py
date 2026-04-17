@@ -48,6 +48,8 @@ class DeploymentEngineTest(unittest.TestCase):
             self.assertIn("/data", compose)
             self.assertIn("/workspace", compose)
             self.assertIn("channel_secret", compose)
+            self.assertIn("NANOBOT_CONSOLE_ACTIVITY_URL", compose)
+            self.assertIn("host.docker.internal:host-gateway", compose)
             self.assertNotIn("docker" + ".sock", compose)
             self.assertTrue((tmp / "bots" / bot["id"] / "data").is_dir())
             self.assertTrue((tmp / "bots" / bot["id"] / "workspace").is_dir())
