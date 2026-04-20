@@ -82,6 +82,7 @@ class ConsoleUITest(unittest.TestCase):
 
         self.assertIn("text/css", content_type)
         self.assertIn(".grid", body)
+        self.assertIn("grid-column: 1 / -1", body)
         self.assertIn("border-radius: 8px", body)
 
     def test_static_path_traversal_is_not_served(self) -> None:
