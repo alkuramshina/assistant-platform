@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 set -eu
 
 MODE="${1:-probe}"
@@ -59,7 +59,7 @@ install_prereqs() {
 
   if has_cmd apt-get; then
     sudo apt-get update
-    sudo apt-get install -y ca-certificates curl python3 docker.io docker-compose-plugin
+    sudo apt-get install -y bash ca-certificates curl python3 docker.io docker-compose-plugin
     return 0
   fi
 

@@ -97,7 +97,7 @@ def run_bootstrap(args: argparse.Namespace, mode: str) -> subprocess.CompletedPr
     script = REMOTE_BOOTSTRAP.read_text(encoding="utf-8")
     remote_root = shlex.quote(args.remote_root)
     console_port = shlex.quote(str(args.console_port))
-    return run_ssh(args, f"sh -s -- {shlex.quote(mode)} {remote_root} {console_port}", input_text=script)
+    return run_ssh(args, f"bash -s -- {shlex.quote(mode)} {remote_root} {console_port}", input_text=script)
 
 
 def parse_probe(output: str) -> dict[str, str]:
