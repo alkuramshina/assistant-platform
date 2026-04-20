@@ -77,12 +77,12 @@ class InstallerTest(unittest.TestCase):
         self.assertEqual(missing, ["passwordless sudo"])
 
     def test_sudo_setup_commands_use_target_user(self) -> None:
-        args = argparse.Namespace(target="ak@192.168.155.66")
+        args = argparse.Namespace(target="ssh_user@ssh_ip_addr")
 
         commands = install.sudo_setup_commands(args)
 
-        self.assertIn("ak ALL=(ALL) NOPASSWD:ALL", commands[0])
-        self.assertIn("/etc/sudoers.d/nanobot-console-ak", commands[0])
+        self.assertIn("ssh_user ALL=(ALL) NOPASSWD:ALL", commands[0])
+        self.assertIn("/etc/sudoers.d/nanobot-console-ssh_user", commands[0])
         self.assertEqual(commands[-1], "sudo -n true")
 
     def test_bootstrap_runs_with_bash(self) -> None:
