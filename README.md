@@ -1,8 +1,8 @@
 # Assistant Platform
 
-SSH-installed multi-bot console prototype for `nanobot`.
+SSH-deployed multi-bot console for `nanobot`.
 
-The customer provides a Linux server or VM. The installer connects over SSH, installs the console, and the console deploys isolated Telegram bot instances.
+The customer provides a Linux server or VM. The deployer connects over SSH, installs or updates the console, and the console deploys isolated Telegram bot instances.
 
 ## Source Of Truth
 
@@ -15,28 +15,28 @@ The customer provides a Linux server or VM. The installer connects over SSH, ins
 ## Current Flow
 
 ```text
-server/VM -> SSH install -> console UI -> create bot -> Telegram chat -> activity logs
+server/VM -> SSH deploy -> console UI -> create bot -> Telegram chat -> activity logs
 ```
 
-## Prototype Must Prove
+## Current Goal
 
-- install/update console on a customer server over SSH;
+- deploy/update console on a customer server over SSH;
 - create multiple bot instances from the UI;
 - keep bot secrets outside git;
 - isolate bot state and workspace per bot;
 - require Telegram allowlist from first deploy;
 - show request/response activity logs per bot.
 
-## Installer
+## Deployer
 
 ```powershell
-py -3 installer\install.py user@server --dry-run
-py -3 installer\install.py
-py -3 installer\install.py user@server
-py -3 installer\install.py user@server --yes
+py -3 deployer\deploy.py user@server --dry-run
+py -3 deployer\deploy.py
+py -3 deployer\deploy.py user@server
+py -3 deployer\deploy.py user@server --yes
 ```
 
-The installer prepares the server, starts the console service, and prints the UI URL. Telegram/provider credentials are entered in the UI.
+The deployer prepares the server, starts the console service, and prints the UI URL. Telegram/provider credentials are entered in the UI.
 
 Preflight on Windows:
 
@@ -49,9 +49,9 @@ ssh -o BatchMode=yes user@server "printf 'ssh=ok\n'"
 ssh user@server "sudo -n true"
 ```
 
-Without `--yes`, installer can prompt for missing connection settings and retry after fixes. With `--yes`, it never prompts and exits on failed preflight.
+Without `--yes`, deployer can prompt for missing connection settings and retry after fixes. With `--yes`, it never prompts and exits on failed preflight.
 
-The installer uses `BatchMode=yes`, so SSH password prompts are disabled. SSH keys solve SSH login only. In interactive mode, installer can ask for your remote sudo password for the install session; `--yes` requires non-interactive sudo.
+The deployer uses `BatchMode=yes`, so SSH password prompts are disabled. SSH keys solve SSH login only. In interactive mode, deployer can ask for your remote sudo password for the deploy session; `--yes` requires non-interactive sudo.
 
 If BatchMode SSH fails:
 
@@ -73,7 +73,7 @@ The API binds to `127.0.0.1` by default and stores secret references only.
 
 ```powershell
 docker compose config
-python -m py_compile installer\install.py
+py -3 -m unittest tests.test_deployer tests.test_console_ui
 python -m unittest discover -s tests
 rg -n "Coolify|coolify|GHCR|Azure OAuth" README.md docs AGENTS.md
 ```

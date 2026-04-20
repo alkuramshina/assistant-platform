@@ -2,18 +2,18 @@
 
 ## Goal
 
-Build a prototype console for deploying multiple isolated `nanobot` Telegram assistants on a customer-provided Linux server or VM.
+Build a console for deploying multiple isolated `nanobot` Telegram assistants on a customer-provided Linux server or VM.
 
-The operator should not need Coolify or a managed hosting platform. They should run an SSH installer, open a small UI, enter bot/provider settings, and get a working bot.
+The operator should not need Coolify or a managed hosting platform. They should run an SSH deployer, open a small UI, enter bot/provider settings, and get a working bot.
 
 ## User Flow
 
 ```text
-customer server -> SSH installer -> console UI -> create bot -> Telegram -> activity logs
+customer server -> SSH deployer -> console UI -> create bot -> Telegram -> activity logs
 ```
 
 1. Operator provides SSH access to a Linux server.
-2. Installer checks prerequisites and installs the console.
+2. Deployer checks prerequisites and installs or updates the console.
 3. Operator opens the local console UI.
 4. Operator creates a bot with:
    - bot name;
@@ -29,7 +29,7 @@ customer server -> SSH installer -> console UI -> create bot -> Telegram -> acti
 
 ## Architecture
 
-### SSH Installer
+### SSH Deployer
 
 Installs or updates the console on the target server.
 
@@ -43,7 +43,7 @@ Installs or updates the console on the target server.
 - start the console service;
 - print the console URL.
 
-Phase 5 installer scope is host bootstrap only. It does not collect Telegram tokens or provider API keys.
+Phase 5 deployer scope is host bootstrap only. It does not collect Telegram tokens or provider API keys.
 
 ### Console
 
@@ -61,9 +61,9 @@ Phase 6 console scope is local JSON API and SQLite persistence only. It binds to
 
 Phase 8 console scope adds a minimal local UI for creating bots, listing statuses, starting/stopping bot Compose projects, and reading activity logs. It does not add authentication or prove the Telegram smoke path.
 
-Phase 9 must prove the real installer-to-UI path on a Linux server or VM. The operator should not manually create console directories, copy app files, create secret folders, or run `python -m console`; the installer prepares the host, starts the console, and prints the URL. The operator then uses the UI to enter bot/provider settings, start one bot, complete a Telegram smoke test, and see request/response logs.
+Phase 9 must prove the real deployer-to-UI path on a Linux server or VM. The operator should not manually create console directories, copy app files, create secret folders, or run `python -m console`; the deployer prepares the host, starts the console, and prints the URL. The operator then uses the UI to enter bot/provider settings, start one bot, complete a Telegram smoke test, and see request/response logs.
 
-Phase 10 must harden the prototype for non-local use: add an HTTPS reverse proxy path, keep plain HTTP limited to local/manual testing, and make the installer either configure TLS from operator-provided domain settings or print an explicit HTTP-only warning.
+Phase 10 must harden the system for non-local use: add an HTTPS reverse proxy path, keep plain HTTP limited to local/manual testing, and make the deployer either configure TLS from operator-provided domain settings or print an explicit HTTP-only warning.
 
 ### Bot Instance
 
@@ -102,7 +102,7 @@ Record the minimum useful audit trail:
 - Telegram allowlist is required from first deployment.
 - Store provider and Telegram keys as server-side secret files.
 - Treat activity logs as sensitive user content.
-- Require explicit operator approval before the installer changes host packages or services.
+- Require explicit operator approval before the deployer changes host packages or services.
 - Do not expose the console over plain HTTP outside local/manual testing.
 
 ## Roadmap
@@ -110,12 +110,12 @@ Record the minimum useful audit trail:
 | Phase | Goal |
 |-------|------|
 | 4 | Product reframe and console architecture |
-| 5 | SSH server bootstrap installer |
+| 5 | SSH server bootstrap deployer |
 | 6 | Console API and persistence |
 | 7 | Bot template deployment engine |
 | 8 | Minimal console UI |
-| 9 | Installer-to-UI Telegram smoke path and activity logs |
-| 10 | Multi-bot isolation, HTTPS, and prototype hardening |
+| 9 | Deployer-to-UI Telegram smoke path and activity logs |
+| 10 | Multi-bot isolation, HTTPS, and hardening |
 
 ## Out Of Scope
 
@@ -129,7 +129,7 @@ Record the minimum useful audit trail:
 
 ## Done Means
 
-- installer can bootstrap a fresh Ubuntu server over SSH;
+- deployer can bootstrap a fresh Ubuntu server over SSH;
 - console UI opens;
 - operator can deploy a first Telegram bot;
 - allowlisted Telegram user gets a response;

@@ -14,7 +14,7 @@ Open:
 http://127.0.0.1:8787/
 ```
 
-The UI can create bots, write server-side secret files, list statuses, start/stop rendered Compose projects, and show activity logs. Bind it locally or put it behind your own access control.
+The UI can create bots, write server-side secret files, list statuses, start/stop rendered Compose projects, and show activity logs. Keep it private: use it only on a trusted network or protect it with HTTPS and access control.
 
 Endpoints:
 

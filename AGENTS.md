@@ -21,7 +21,7 @@
 
 ## Project Constraints
 
-- Current prototype is an SSH-installed multi-bot console for customer-provided Linux servers/VMs.
+- Current product is an SSH-deployed multi-bot console for customer-provided Linux servers/VMs.
 - Docker Compose is the per-bot runtime template.
 - Do not commit real secrets. Use `.env.example` for variable names and placeholder values only; runtime keys should enter containers through Docker Compose secrets or platform-managed secrets.
 - Do not mount `docker.sock` into bot containers.

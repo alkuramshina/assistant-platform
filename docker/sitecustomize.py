@@ -1,4 +1,4 @@
-"""Optional console activity logging hook for the prototype image."""
+"""Optional console activity logging hook for the bot image."""
 
 from __future__ import annotations
 
