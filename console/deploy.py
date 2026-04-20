@@ -17,11 +17,33 @@ class Runner(Protocol):
 
 class CommandRunner:
     def run(self, command: list[str], *, cwd: Path | None = None) -> None:
-        subprocess.run(command, cwd=cwd, check=True)
+        result = subprocess.run(
+            command,
+            cwd=cwd,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        if result.returncode != 0:
+            details = "\n".join(
+                part
+                for part in (
+                    f"Command failed with exit code {result.returncode}: {format_command(command)}",
+                    f"stdout:\n{result.stdout.strip()}" if result.stdout.strip() else "",
+                    f"stderr:\n{result.stderr.strip()}" if result.stderr.strip() else "",
+                )
+                if part
+            )
+            raise DeploymentError(details)
 
 
 class DeploymentError(ValueError):
     pass
+
+
+def format_command(command: list[str]) -> str:
+    return " ".join(subprocess.list2cmdline([part]) for part in command)
 
 
 @dataclass(frozen=True)

@@ -32,9 +32,10 @@ class DeployerTest(unittest.TestCase):
     def test_control_script_has_service_commands(self) -> None:
         script = deploy.REMOTE_CONTROL.read_text(encoding="utf-8")
 
-        self.assertIn("restart|status|logs|url", script)
+        self.assertIn("restart|status|logs|bot-logs|url", script)
         self.assertIn("systemctl restart", script)
         self.assertIn("journalctl -u", script)
+        self.assertIn("docker compose -p", script)
         self.assertIn("nanobot-console", script)
 
     def test_run_sends_input_text_as_bytes(self) -> None:

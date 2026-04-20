@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import tempfile
+import subprocess
 import unittest
 from pathlib import Path
 
-from console.deploy import DeploymentEngine, DeploymentError
+from console.deploy import CommandRunner, DeploymentEngine, DeploymentError
 
 
 class FakeRunner:
@@ -33,6 +34,27 @@ def bot_record(tmp: Path, bot_id: str = "bot-abc") -> dict:
 
 
 class DeploymentEngineTest(unittest.TestCase):
+    def test_command_runner_surfaces_compose_output(self) -> None:
+        captured: dict[str, object] = {}
+
+        def fake_run(command, **kwargs):
+            captured.update(kwargs)
+            return subprocess.CompletedProcess(command, 1, "out text\n", "err text\n")
+
+        original = subprocess.run
+        try:
+            subprocess.run = fake_run
+            with self.assertRaises(DeploymentError) as cm:
+                CommandRunner().run(["docker", "compose", "up"], cwd=Path("/tmp/bot"))
+        finally:
+            subprocess.run = original
+
+        self.assertTrue(captured["text"])
+        self.assertEqual(captured["stdout"], subprocess.PIPE)
+        self.assertIn("exit code 1", str(cm.exception))
+        self.assertIn("out text", str(cm.exception))
+        self.assertIn("err text", str(cm.exception))
+
     def test_deploy_renders_isolated_compose(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             tmp = Path(raw)

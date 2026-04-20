@@ -27,6 +27,7 @@ After deploy, manage the console on the server:
 sudo /opt/nanobot-console/consolectl restart
 sudo /opt/nanobot-console/consolectl status
 sudo /opt/nanobot-console/consolectl logs
+sudo /opt/nanobot-console/consolectl bot-logs <bot-id>
 sudo /opt/nanobot-console/consolectl url
 ```
 

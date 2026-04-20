@@ -8,12 +8,13 @@ CONSOLE_PORT="${NANOBOT_CONSOLE_PORT:-8787}"
 
 usage() {
   cat <<EOF
-Usage: $0 restart|status|logs|url
+Usage: $0 restart|status|logs|bot-logs|url
 
 Commands:
   restart  Restart Nanobot Console
   status   Show service status
   logs     Show recent service logs
+  bot-logs Show recent logs for one bot: $0 bot-logs <bot-id> [lines]
   url      Print the configured HTTP URL
 EOF
 }
@@ -32,6 +33,25 @@ case "${1:-}" in
     ;;
   logs)
     sudo journalctl -u "$SERVICE_NAME" -n "${2:-80}" --no-pager
+    ;;
+  bot-logs)
+    bot_id="${2:-}"
+    if [ -z "$bot_id" ]; then
+      printf 'Usage: %s bot-logs <bot-id> [lines]\n' "$0" >&2
+      exit 2
+    fi
+    safe_id="$(printf '%s' "$bot_id" | sed 's/[^a-zA-Z0-9_-]/-/g' | sed 's/^-*//; s/-*$//' | cut -c1-64)"
+    if [ -z "$safe_id" ]; then
+      printf 'Invalid bot id: %s\n' "$bot_id" >&2
+      exit 2
+    fi
+    project="nanobot_$(printf '%s' "$safe_id" | tr '-' '_')"
+    compose="$REMOTE_ROOT/bots/$safe_id/docker-compose.yml"
+    if [ ! -f "$compose" ]; then
+      printf 'Compose file not found: %s\n' "$compose" >&2
+      exit 1
+    fi
+    sudo docker compose -p "$project" -f "$compose" logs --tail "${3:-120}"
     ;;
   url)
     ip="$(host_ip)"
