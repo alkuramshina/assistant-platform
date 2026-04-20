@@ -78,13 +78,27 @@ def run(
     input_text: str | None = None,
     check: bool = True,
 ) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
+    if input_text is None:
+        return subprocess.run(
+            cmd,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=check,
+        )
+
+    result = subprocess.run(
         cmd,
-        input=input_text,
-        text=True,
+        input=input_text.encode("utf-8"),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         check=check,
+    )
+    return subprocess.CompletedProcess(
+        result.args,
+        result.returncode,
+        result.stdout.decode("utf-8", "replace"),
+        result.stderr.decode("utf-8", "replace"),
     )
 
 

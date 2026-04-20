@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import subprocess
 import tarfile
 import unittest
 
@@ -8,6 +9,24 @@ from installer import install
 
 
 class InstallerTest(unittest.TestCase):
+    def test_run_sends_input_text_as_bytes(self) -> None:
+        captured: dict[str, object] = {}
+
+        def fake_run(cmd, **kwargs):
+            captured.update(kwargs)
+            return subprocess.CompletedProcess(cmd, 0, b"ok\n", b"")
+
+        original = install.subprocess.run
+        try:
+            install.subprocess.run = fake_run
+            result = install.run(["ssh", "example"], input_text="set -eu\n")
+        finally:
+            install.subprocess.run = original
+
+        self.assertEqual(captured["input"], b"set -eu\n")
+        self.assertNotIn("text", captured)
+        self.assertEqual(result.stdout, "ok\n")
+
     def test_ssh_base_has_non_interactive_timeout_options(self) -> None:
         args = argparse.Namespace(port="22", identity_file=None, target="user@example.com")
         command = install.ssh_base(args)
