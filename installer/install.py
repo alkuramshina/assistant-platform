@@ -33,13 +33,13 @@ def parse_args() -> argparse.Namespace:
             "Target format: user@host"
         )
     )
-    parser.add_argument("target", help="SSH target, for example ubuntu@example.com")
+    parser.add_argument("target", nargs="?", help="SSH target, for example ubuntu@example.com")
     parser.add_argument("--port", default="22", help="SSH port, default: 22")
     parser.add_argument("--identity-file", help="SSH private key path")
     parser.add_argument("--remote-root", default=DEFAULT_REMOTE_ROOT, help="Remote install root")
     parser.add_argument("--console-port", default="8787", help="Console port, default: 8787")
     parser.add_argument("--dry-run", action="store_true", help="Probe and print planned changes only")
-    parser.add_argument("--yes", action="store_true", help="Approve host changes without prompting")
+    parser.add_argument("--yes", action="store_true", help="Non-interactive apply: approve host changes and fail instead of retry prompts")
     return parser.parse_args()
 
 
@@ -92,14 +92,22 @@ def run(
         input=input_text.encode("utf-8"),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        check=check,
+        check=False,
     )
-    return subprocess.CompletedProcess(
+    completed = subprocess.CompletedProcess(
         result.args,
         result.returncode,
         result.stdout.decode("utf-8", "replace"),
         result.stderr.decode("utf-8", "replace"),
     )
+    if check and completed.returncode != 0:
+        raise subprocess.CalledProcessError(
+            completed.returncode,
+            completed.args,
+            output=completed.stdout,
+            stderr=completed.stderr,
+        )
+    return completed
 
 
 def print_command_failure(exc: subprocess.CalledProcessError) -> None:
@@ -110,6 +118,49 @@ def print_command_failure(exc: subprocess.CalledProcessError) -> None:
     if exc.stderr:
         print("stderr:", file=sys.stderr)
         print(exc.stderr.rstrip(), file=sys.stderr)
+
+
+def prompt_value(label: str, default: str = "") -> str:
+    suffix = f" [{default}]" if default else ""
+    value = input(f"{label}{suffix}: ").strip()
+    return value or default
+
+
+def configure_interactive(args: argparse.Namespace) -> None:
+    if args.target:
+        return
+    print("Interactive installer")
+    args.target = prompt_value("SSH target, for example ak@192.168.155.66")
+    args.port = prompt_value("SSH port", str(args.port))
+    args.identity_file = prompt_value("SSH identity file, blank for default key", args.identity_file or "") or None
+    args.remote_root = prompt_value("Remote install root", args.remote_root)
+    args.console_port = prompt_value("Console port", str(args.console_port))
+
+
+def wait_for_retry(args: argparse.Namespace, reason: str) -> bool:
+    if args.yes:
+        return False
+    answer = input(f"{reason}. Press Enter after fixing to retry, or type q to quit: ").strip().lower()
+    return answer not in {"q", "quit", "n", "no"}
+
+
+def sudo_setup_commands(args: argparse.Namespace) -> list[str]:
+    user = args.target.split("@", 1)[0] if "@" in args.target else args.target
+    sudoers = f"/etc/sudoers.d/nanobot-console-{user}"
+    return [
+        f"echo '{user} ALL=(ALL) NOPASSWD:ALL' | sudo tee {sudoers}",
+        f"sudo chmod 0440 {sudoers}",
+        "sudo -n true",
+    ]
+
+
+def print_sudo_help(args: argparse.Namespace) -> None:
+    print()
+    print("Remote sudo is not non-interactive.")
+    print("SSH key login solves SSH authentication only; it does not remove the sudo password prompt.")
+    print("For this prototype installer, configure passwordless sudo for the target user on the VM:")
+    for command in sudo_setup_commands(args):
+        print(f"  {command}")
 
 
 def run_ssh(
@@ -145,6 +196,8 @@ def print_probe(probe: dict[str, str]) -> None:
 
 def missing_prereqs(probe: dict[str, str]) -> list[str]:
     missing: list[str] = []
+    if probe.get("sudo") != "ok":
+        missing.append("passwordless sudo")
     if probe.get("docker") != "ok":
         missing.append("Docker Engine")
     if probe.get("compose") != "ok":
@@ -215,35 +268,50 @@ def upload_app(args: argparse.Namespace) -> None:
 
 def main() -> int:
     args = parse_args()
+    configure_interactive(args)
+    if not args.target:
+        print("Missing SSH target.", file=sys.stderr)
+        return 2
     if not REMOTE_BOOTSTRAP.exists():
         print(f"Missing remote bootstrap script: {REMOTE_BOOTSTRAP}", file=sys.stderr)
         return 2
 
-    print(f"Target: {args.target}")
-    print(f"Remote root: {args.remote_root}")
-    print("Checking SSH connectivity...")
-    try:
-        run_ssh(args, "printf 'ssh=ok\\n'")
-    except subprocess.CalledProcessError as exc:
-        print_command_failure(exc)
-        print()
-        print("SSH check failed.")
-        print("Try this from PowerShell first:")
-        print(f"  ssh -p {args.port} {args.target}")
-        print()
-        print("Installer uses BatchMode=yes, so password prompts are disabled.")
-        print("Use SSH key login or pass --identity-file PATH_TO_KEY.")
-        return 1
+    while True:
+        print(f"Target: {args.target}")
+        print(f"Remote root: {args.remote_root}")
+        print("Checking SSH connectivity...")
+        try:
+            run_ssh(args, "printf 'ssh=ok\\n'")
+        except subprocess.CalledProcessError as exc:
+            print_command_failure(exc)
+            print()
+            print("SSH check failed.")
+            print("Try this from PowerShell first:")
+            print(f"  ssh -p {args.port} {args.target}")
+            print()
+            print("Installer uses BatchMode=yes, so password prompts are disabled.")
+            print("Use SSH key login or pass --identity-file PATH_TO_KEY.")
+            if wait_for_retry(args, "SSH check failed"):
+                continue
+            return 1
 
-    print("Probing remote prerequisites...")
-    try:
-        probe_result = run_bootstrap(args, "probe")
-    except subprocess.CalledProcessError as exc:
-        print_command_failure(exc)
-        return 1
-    probe = parse_probe(probe_result.stdout)
-    print_probe(probe)
-    missing = missing_prereqs(probe)
+        print("Probing remote prerequisites...")
+        try:
+            probe_result = run_bootstrap(args, "probe")
+        except subprocess.CalledProcessError as exc:
+            print_command_failure(exc)
+            if wait_for_retry(args, "Remote probe failed"):
+                continue
+            return 1
+        probe = parse_probe(probe_result.stdout)
+        print_probe(probe)
+        missing = missing_prereqs(probe)
+        if probe.get("sudo") != "ok":
+            print_sudo_help(args)
+            if wait_for_retry(args, "Passwordless sudo is not configured"):
+                continue
+            return 1
+        break
 
     if args.dry_run:
         print()

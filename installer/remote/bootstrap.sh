@@ -40,6 +40,12 @@ probe() {
     printf 'compose=missing\n'
   fi
 
+  if sudo -n true >/dev/null 2>&1; then
+    printf 'sudo=ok\n'
+  else
+    printf 'sudo=password_required\n'
+  fi
+
   printf 'disk_kb=%s\n' "$(df -Pk / 2>/dev/null | awk 'NR==2 {print $4}')"
   printf 'memory_kb=%s\n' "$(awk '/MemTotal/ {print $2}' /proc/meminfo 2>/dev/null || printf unknown)"
 
@@ -52,7 +58,17 @@ probe() {
   fi
 }
 
+require_sudo() {
+  if ! sudo -n true >/dev/null 2>&1; then
+    printf 'error=sudo_password_required\n' >&2
+    printf 'configure passwordless sudo for this prototype installer, or run with a user that can sudo non-interactively\n' >&2
+    return 1
+  fi
+}
+
 install_prereqs() {
+  require_sudo
+
   if has_cmd docker && docker compose version >/dev/null 2>&1; then
     return 0
   fi
@@ -68,6 +84,7 @@ install_prereqs() {
 }
 
 apply() {
+  require_sudo
   install_prereqs
   sudo mkdir -p \
     "$REMOTE_ROOT" \
@@ -84,6 +101,8 @@ apply() {
 }
 
 finalize() {
+  require_sudo
+
   if [ ! -d "$REMOTE_ROOT/app/console" ]; then
     printf 'error=app_not_uploaded\n' >&2
     return 1

@@ -8,9 +8,10 @@ Dry-run probe:
 py -3 installer\install.py user@server --dry-run
 ```
 
-Apply after reviewing planned host changes:
+Interactive apply:
 
 ```powershell
+py -3 installer\install.py
 py -3 installer\install.py user@server
 ```
 
@@ -30,7 +31,7 @@ Prerequisites:
 - Target server:
   - Ubuntu-compatible Linux;
   - SSH server enabled;
-  - target user can run `sudo`;
+  - target user can run non-interactive `sudo`;
   - outbound network access.
 
 Preflight:
@@ -41,6 +42,7 @@ ssh -V
 scp
 ssh user@server
 ssh -o BatchMode=yes user@server "printf 'ssh=ok\n'"
+ssh user@server "sudo -n true"
 ```
 
 Set up SSH key login if BatchMode fails:
@@ -53,7 +55,17 @@ ssh -o BatchMode=yes user@server "printf 'ssh=ok\n'"
 
 Notes:
 
+- without `--yes`, installer can ask for missing connection settings and offer retry prompts after SSH/sudo fixes;
+- with `--yes`, installer never prompts and exits on failed preflight;
 - installer uses `BatchMode=yes`, so SSH password prompts are disabled during install;
+- SSH key login solves SSH authentication only; `sudo` must be non-interactive too. If needed, add a temporary sudoers file on the VM:
+
+  ```bash
+  echo 'user ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/nanobot-console-user
+  sudo chmod 0440 /etc/sudoers.d/nanobot-console-user
+  sudo -n true
+  ```
+
 - if BatchMode SSH fails, configure SSH key login first or use `--identity-file PATH_TO_KEY`;
 - default install root is `/opt/nanobot-console`;
 - missing Docker/Compose prerequisites require approval before installation;

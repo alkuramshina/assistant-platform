@@ -31,7 +31,9 @@ server/VM -> SSH install -> console UI -> create bot -> Telegram chat -> activit
 
 ```powershell
 py -3 installer\install.py user@server --dry-run
+py -3 installer\install.py
 py -3 installer\install.py user@server
+py -3 installer\install.py user@server --yes
 ```
 
 The installer prepares the server, starts the console service, and prints the UI URL. Telegram/provider credentials are entered in the UI.
@@ -44,9 +46,12 @@ ssh -V
 scp
 ssh user@server
 ssh -o BatchMode=yes user@server "printf 'ssh=ok\n'"
+ssh user@server "sudo -n true"
 ```
 
-The installer uses `BatchMode=yes`, so password prompts are disabled. Configure SSH key login first or pass `--identity-file`.
+Without `--yes`, installer can prompt for missing connection settings and retry after fixes. With `--yes`, it never prompts and exits on failed preflight.
+
+The installer uses `BatchMode=yes`, so SSH and `sudo` password prompts are disabled. SSH keys solve SSH login only; configure non-interactive sudo separately, or pass `--identity-file` for a specific SSH key.
 
 If BatchMode SSH fails:
 

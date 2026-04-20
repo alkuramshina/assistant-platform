@@ -55,6 +55,7 @@ class InstallerTest(unittest.TestCase):
     def test_missing_prereqs_includes_compose_and_network(self) -> None:
         missing = install.missing_prereqs(
             {
+                "sudo": "ok",
                 "docker": "ok",
                 "compose": "missing",
                 "network": "unknown",
@@ -62,6 +63,27 @@ class InstallerTest(unittest.TestCase):
         )
 
         self.assertEqual(missing, ["Docker Compose", "outbound network"])
+
+    def test_missing_prereqs_includes_passwordless_sudo(self) -> None:
+        missing = install.missing_prereqs(
+            {
+                "sudo": "password_required",
+                "docker": "ok",
+                "compose": "ok",
+                "network": "ok",
+            }
+        )
+
+        self.assertEqual(missing, ["passwordless sudo"])
+
+    def test_sudo_setup_commands_use_target_user(self) -> None:
+        args = argparse.Namespace(target="ak@192.168.155.66")
+
+        commands = install.sudo_setup_commands(args)
+
+        self.assertIn("ak ALL=(ALL) NOPASSWD:ALL", commands[0])
+        self.assertIn("/etc/sudoers.d/nanobot-console-ak", commands[0])
+        self.assertEqual(commands[-1], "sudo -n true")
 
     def test_bootstrap_runs_with_bash(self) -> None:
         args = argparse.Namespace(remote_root="/opt/test root", console_port="8787")
