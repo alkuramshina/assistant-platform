@@ -224,7 +224,12 @@ def run_bootstrap_with_sudo_password(
     remote_tmp_q = shlex.quote(remote_tmp)
     return run_sudo_shell(
         args,
-        f"bash {remote_tmp_q} {shlex.quote(mode)} {remote_root} {console_port}; rm -f {remote_tmp_q}",
+        (
+            f"bash {remote_tmp_q} {shlex.quote(mode)} {remote_root} {console_port}; "
+            "status=$?; "
+            f"rm -f {remote_tmp_q}; "
+            "exit $status"
+        ),
         sudo_password,
     )
 
@@ -279,6 +284,7 @@ def upload_scaffold(args: argparse.Namespace, sudo_password: str | None = None) 
     version_q = shlex.quote(VERSION)
     if sudo_password:
         command = (
+            f"mkdir -p {remote_root} && "
             f"install -m 0755 {remote_tmp_q} {remote_root}/bootstrap.sh && "
             f"printf '%s\\n' {version_q} | tee {remote_root}/VERSION >/dev/null && "
             f"rm -f {remote_tmp_q}"

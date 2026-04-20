@@ -97,6 +97,63 @@ class InstallerTest(unittest.TestCase):
         self.assertNotIn("secret-pass", command)
         self.assertEqual(captured["input_text"], "secret-pass\n")
 
+    def test_bootstrap_with_sudo_preserves_script_exit_status(self) -> None:
+        args = argparse.Namespace(remote_root="/opt/nanobot-console", console_port="8787")
+        captured: dict[str, object] = {}
+
+        def fake_upload_bootstrap_tmp(args):
+            return "/tmp/bootstrap.sh"
+
+        def fake_run_sudo_shell(args, command: str, sudo_password: str):
+            captured["command"] = command
+            captured["sudo_password"] = sudo_password
+            return subprocess.CompletedProcess(command, 0, "", "")
+
+        original_upload = install.upload_bootstrap_tmp
+        original_sudo = install.run_sudo_shell
+        try:
+            install.upload_bootstrap_tmp = fake_upload_bootstrap_tmp
+            install.run_sudo_shell = fake_run_sudo_shell
+            install.run_bootstrap_with_sudo_password(args, "apply", "secret-pass")
+        finally:
+            install.upload_bootstrap_tmp = original_upload
+            install.run_sudo_shell = original_sudo
+
+        self.assertIn("status=$?", str(captured["command"]))
+        self.assertIn("exit $status", str(captured["command"]))
+        self.assertEqual(captured["sudo_password"], "secret-pass")
+
+    def test_upload_scaffold_with_sudo_creates_remote_root(self) -> None:
+        args = argparse.Namespace(
+            target="user@example.com",
+            port="22",
+            identity_file=None,
+            remote_root="/opt/nanobot-console",
+        )
+        captured: dict[str, object] = {}
+
+        def fake_run(cmd, **kwargs):
+            return subprocess.CompletedProcess(cmd, 0, "", "")
+
+        def fake_run_sudo_shell(args, command: str, sudo_password: str):
+            captured["command"] = command
+            captured["sudo_password"] = sudo_password
+            return subprocess.CompletedProcess(command, 0, "", "")
+
+        original_run = install.run
+        original_sudo = install.run_sudo_shell
+        try:
+            install.run = fake_run
+            install.run_sudo_shell = fake_run_sudo_shell
+            install.upload_scaffold(args, "secret-pass")
+        finally:
+            install.run = original_run
+            install.run_sudo_shell = original_sudo
+
+        self.assertIn("mkdir -p /opt/nanobot-console", str(captured["command"]))
+        self.assertIn("install -m 0755", str(captured["command"]))
+        self.assertEqual(captured["sudo_password"], "secret-pass")
+
     def test_bootstrap_runs_with_bash(self) -> None:
         args = argparse.Namespace(remote_root="/opt/test root", console_port="8787")
         captured: dict[str, str | None] = {}
