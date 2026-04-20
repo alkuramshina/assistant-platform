@@ -98,6 +98,8 @@ class DeploymentEngineTest(unittest.TestCase):
             self.assertTrue((tmp / "bots" / bot["id"] / "workspace").is_dir())
             self.assertTrue((tmp / "bots" / bot["id"] / "secrets" / "channel").is_file())
             if os.name != "nt":
+                self.assertEqual(stat.S_IMODE((tmp / "bots" / bot["id"] / "data").stat().st_mode), 0o775)
+                self.assertEqual((tmp / "bots" / bot["id"] / "data").stat().st_uid, 1000)
                 self.assertEqual(stat.S_IMODE((tmp / "bots" / bot["id"] / "secrets").stat().st_mode), 0o700)
                 self.assertEqual(
                     stat.S_IMODE((tmp / "bots" / bot["id"] / "secrets" / "provider").stat().st_mode),

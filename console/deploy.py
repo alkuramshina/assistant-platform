@@ -3,12 +3,17 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
+
+
+APP_UID = 1000
+APP_GID = 1000
 
 
 class Runner(Protocol):
@@ -115,6 +120,8 @@ class DeploymentEngine:
         paths = self.paths(bot["id"])
         for path in (paths.data, paths.workspace, paths.secrets):
             path.mkdir(parents=True, exist_ok=True)
+        for path in (paths.data, paths.workspace):
+            self._prepare_writable_dir(path)
         paths.secrets.chmod(0o700)
         self._copy_secret(bot["channel_secret_ref"], paths.channel_secret)
         self._copy_secret(bot["provider_secret_ref"], paths.provider_secret)
@@ -216,6 +223,11 @@ secrets:
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source, dest)
         dest.chmod(0o444)
+
+    def _prepare_writable_dir(self, path: Path) -> None:
+        path.chmod(0o775)
+        if hasattr(os, "chown"):
+            os.chown(path, APP_UID, APP_GID)
 
     def _compose_path(self, path: Path) -> str:
         return str(path.resolve()).replace("\\", "/")
