@@ -132,7 +132,10 @@ def configure_interactive(args: argparse.Namespace) -> None:
     print("Interactive installer")
     args.target = prompt_value("SSH target, for example <user>@<vm-ip>")
     args.port = prompt_value("SSH port", str(args.port))
-    args.identity_file = prompt_value("SSH identity file, blank for default key", args.identity_file or "") or None
+    args.identity_file = (
+        prompt_value("SSH identity file path, or press Enter to use the default SSH key", args.identity_file or "")
+        or None
+    )
     args.remote_root = prompt_value("Remote install root", args.remote_root)
     args.console_port = prompt_value("Console port", str(args.console_port))
 
