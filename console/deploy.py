@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 import shutil
 import subprocess
@@ -118,10 +119,12 @@ class DeploymentEngine:
         workspace = self._compose_path(paths.workspace)
         channel_secret = self._compose_path(paths.channel_secret)
         provider_secret = self._compose_path(paths.provider_secret)
-        model = self._quote(str(bot.get("provider_model", "")))
-        base_url = self._quote(str(bot.get("provider_base_url", "")))
-        prompt = self._quote(str(bot.get("system_prompt", "")))
-        allow = self._quote(str(bot.get("allowed_user_ids", "")))
+        data_volume = self._yaml_string(f"{data}:/home/app/.nanobot")
+        workspace_volume = self._yaml_string(f"{workspace}:/workspace")
+        model = self._yaml_string(str(bot.get("provider_model", "")))
+        base_url = self._yaml_string(str(bot.get("provider_base_url", "")))
+        prompt = self._yaml_string(str(bot.get("system_prompt", "")))
+        allow = self._yaml_string(str(bot.get("allowed_user_ids", "")))
 
         return f"""services:
   nanobot:
@@ -143,11 +146,11 @@ class DeploymentEngine:
       CHANNEL_TYPE: telegram
       CHANNEL_ALLOW_FROM: {allow}
       TELEGRAM_ENABLED: "true"
-      NANOBOT_CONSOLE_BOT_ID: {self._quote(str(bot.get("id", "")))}
-      NANOBOT_CONSOLE_ACTIVITY_URL: {self._quote(str(bot.get("activity_url", "")))}
+      NANOBOT_CONSOLE_BOT_ID: {self._yaml_string(str(bot.get("id", "")))}
+      NANOBOT_CONSOLE_ACTIVITY_URL: {self._yaml_string(str(bot.get("activity_url", "")))}
     volumes:
-      - {data}:/home/app/.nanobot
-      - {workspace}:/workspace
+      - {data_volume}
+      - {workspace_volume}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     secrets:
@@ -157,9 +160,9 @@ class DeploymentEngine:
 
 secrets:
   provider_secret:
-    file: {provider_secret}
+    file: {self._yaml_string(provider_secret)}
   channel_secret:
-    file: {channel_secret}
+    file: {self._yaml_string(channel_secret)}
 """
 
     def project_name(self, bot_id: str) -> str:
@@ -177,8 +180,7 @@ secrets:
         dest.chmod(0o600)
 
     def _compose_path(self, path: Path) -> str:
-        return self._quote(str(path.resolve()).replace("\\", "/"))
+        return str(path.resolve()).replace("\\", "/")
 
-    def _quote(self, value: str) -> str:
-        escaped = value.replace("\\", "\\\\").replace('"', '\\"')
-        return f'"{escaped}"'
+    def _yaml_string(self, value: str) -> str:
+        return json.dumps(value)

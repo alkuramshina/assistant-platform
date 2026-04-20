@@ -12,6 +12,7 @@ __pycache__/
 .ruff_cache/
 *.log
 desktop.ini
+.test-tmp/
 
 # Local agent/GSD working memory. Durable decisions belong in docs/ and AGENTS.md.
 .planning

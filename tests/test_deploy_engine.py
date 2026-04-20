@@ -1,11 +1,21 @@
 from __future__ import annotations
 
-import tempfile
 import subprocess
 import unittest
+from contextlib import contextmanager
 from pathlib import Path
+from uuid import uuid4
 
 from console.deploy import CommandRunner, DeploymentEngine, DeploymentError
+
+
+@contextmanager
+def workspace_temp_dir():
+    root = Path(".test-tmp")
+    root.mkdir(exist_ok=True)
+    tmp = root / uuid4().hex
+    tmp.mkdir(parents=True, exist_ok=False)
+    yield tmp
 
 
 class FakeRunner:
@@ -56,8 +66,7 @@ class DeploymentEngineTest(unittest.TestCase):
         self.assertIn("err text", str(cm.exception))
 
     def test_deploy_renders_isolated_compose(self) -> None:
-        with tempfile.TemporaryDirectory() as raw:
-            tmp = Path(raw)
+        with workspace_temp_dir() as tmp:
             runner = FakeRunner()
             engine = DeploymentEngine(tmp / "bots", runner)
             bot = bot_record(tmp)
@@ -80,9 +89,24 @@ class DeploymentEngineTest(unittest.TestCase):
             self.assertTrue((tmp / "bots" / bot["id"] / "secrets" / "channel").is_file())
             self.assertEqual(runner.commands[0][0][:4], ["docker", "compose", "-p", "nanobot_bot_abc"])
 
+    def test_render_compose_escapes_yaml_sensitive_values(self) -> None:
+        with workspace_temp_dir() as tmp:
+            engine = DeploymentEngine(tmp / "bots", FakeRunner())
+            bot = bot_record(tmp)
+            bot["provider_model"] = "nvidia/nemotron-3-super-120b-a12b:free"
+            bot["provider_base_url"] = "https://openrouter.ai/api/v1"
+            bot["system_prompt"] = "Line one:\n- keep this as text\nLine three"
+
+            paths = engine.deploy(bot)
+            compose = paths.compose.read_text(encoding="utf-8")
+
+            self.assertIn('DEFAULT_MODEL: "nvidia/nemotron-3-super-120b-a12b:free"', compose)
+            self.assertIn('SYSTEM_PROMPT: "Line one:\\n- keep this as text\\nLine three"', compose)
+            self.assertIn(f'- "{paths.data.resolve().as_posix()}:/home/app/.nanobot"', compose)
+            self.assertNotIn("\n- keep this as text", compose)
+
     def test_two_bots_do_not_share_paths_or_projects(self) -> None:
-        with tempfile.TemporaryDirectory() as raw:
-            tmp = Path(raw)
+        with workspace_temp_dir() as tmp:
             engine = DeploymentEngine(tmp / "bots", FakeRunner())
             first = engine.deploy(bot_record(tmp, "bot-one"))
             second = engine.deploy(bot_record(tmp, "bot-two"))
@@ -91,8 +115,7 @@ class DeploymentEngineTest(unittest.TestCase):
             self.assertNotEqual(engine.project_name("bot-one"), engine.project_name("bot-two"))
 
     def test_missing_allowlist_fails_before_runner(self) -> None:
-        with tempfile.TemporaryDirectory() as raw:
-            tmp = Path(raw)
+        with workspace_temp_dir() as tmp:
             runner = FakeRunner()
             engine = DeploymentEngine(tmp / "bots", runner)
             bot = bot_record(tmp)
@@ -103,8 +126,7 @@ class DeploymentEngineTest(unittest.TestCase):
             self.assertEqual(runner.commands, [])
 
     def test_missing_secret_ref_fails_before_runner(self) -> None:
-        with tempfile.TemporaryDirectory() as raw:
-            tmp = Path(raw)
+        with workspace_temp_dir() as tmp:
             runner = FakeRunner()
             engine = DeploymentEngine(tmp / "bots", runner)
             bot = bot_record(tmp)
