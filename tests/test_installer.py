@@ -20,6 +20,14 @@ class InstallerTest(unittest.TestCase):
         self.assertIn("docker-compose", script)
         self.assertIn("compose_install_failed", script)
 
+    def test_bootstrap_finalization_prints_progress_markers(self) -> None:
+        script = install.REMOTE_BOOTSTRAP.read_text(encoding="utf-8")
+
+        self.assertIn("docker_daemon=check", script)
+        self.assertIn("docker_build=start", script)
+        self.assertIn("docker_build=ok", script)
+        self.assertIn("service_restart=start", script)
+
     def test_run_sends_input_text_as_bytes(self) -> None:
         captured: dict[str, object] = {}
 
@@ -37,6 +45,25 @@ class InstallerTest(unittest.TestCase):
         self.assertEqual(captured["input"], b"set -eu\n")
         self.assertNotIn("text", captured)
         self.assertEqual(result.stdout, "ok\n")
+
+    def test_run_stream_leaves_output_uncaptured_and_sends_input_as_bytes(self) -> None:
+        captured: dict[str, object] = {}
+
+        def fake_run(cmd, **kwargs):
+            captured.update(kwargs)
+            return subprocess.CompletedProcess(cmd, 0, None, None)
+
+        original = install.subprocess.run
+        try:
+            install.subprocess.run = fake_run
+            install.run_stream(["ssh", "example"], input_text="password\n")
+        finally:
+            install.subprocess.run = original
+
+        self.assertEqual(captured["input"], b"password\n")
+        self.assertTrue(captured["check"])
+        self.assertNotIn("stdout", captured)
+        self.assertNotIn("stderr", captured)
 
     def test_ssh_base_has_non_interactive_timeout_options(self) -> None:
         args = argparse.Namespace(port="22", identity_file=None, target="user@example.com")

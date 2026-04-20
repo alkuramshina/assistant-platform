@@ -124,10 +124,17 @@ finalize() {
   fi
 
   if has_cmd docker; then
+    printf 'docker_daemon=check\n'
+    sudo docker info >/dev/null
+    printf 'docker_build=start\n'
     sudo docker build -t nanobot-enterprise-pilot:dev "$REMOTE_ROOT/app"
+    printf 'docker_build=ok\n'
+  else
+    printf 'docker_build=skipped_no_docker\n'
   fi
 
   if has_cmd systemctl; then
+    printf 'service_unit=write\n'
     sudo tee "/etc/systemd/system/$SERVICE_NAME.service" >/dev/null <<EOF
 [Unit]
 Description=Nanobot Console Prototype
@@ -144,8 +151,11 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
+    printf 'service_daemon_reload=start\n'
     sudo systemctl daemon-reload
+    printf 'service_enable=start\n'
     sudo systemctl enable "$SERVICE_NAME"
+    printf 'service_restart=start\n'
     sudo systemctl restart "$SERVICE_NAME"
     printf 'service=%s\n' "$SERVICE_NAME"
     printf 'service_status=%s\n' "$(systemctl is-active "$SERVICE_NAME" 2>/dev/null || printf unknown)"

@@ -111,6 +111,15 @@ def run(
     return completed
 
 
+def run_stream(
+    cmd: list[str],
+    *,
+    input_text: str | None = None,
+) -> subprocess.CompletedProcess[None]:
+    input_bytes = input_text.encode("utf-8") if input_text is not None else None
+    return subprocess.run(cmd, input=input_bytes, check=True)
+
+
 def print_command_failure(exc: subprocess.CalledProcessError) -> None:
     print("Command failed:", " ".join(shlex.quote(str(part)) for part in exc.cmd), file=sys.stderr)
     if exc.stdout:
@@ -170,6 +179,15 @@ def run_ssh(
     return run([*ssh_base(args), remote_cmd], input_text=input_text)
 
 
+def run_ssh_stream(
+    args: argparse.Namespace,
+    remote_cmd: str,
+    *,
+    input_text: str | None = None,
+) -> subprocess.CompletedProcess[None]:
+    return run_stream([*ssh_base(args), remote_cmd], input_text=input_text)
+
+
 def run_sudo_shell(
     args: argparse.Namespace,
     remote_cmd: str,
@@ -177,6 +195,15 @@ def run_sudo_shell(
 ) -> subprocess.CompletedProcess[str]:
     command = f"sudo -S -p '' bash -lc {shlex.quote(remote_cmd)}"
     return run_ssh(args, command, input_text=f"{sudo_password}\n")
+
+
+def run_sudo_shell_stream(
+    args: argparse.Namespace,
+    remote_cmd: str,
+    sudo_password: str,
+) -> subprocess.CompletedProcess[None]:
+    command = f"sudo -S -p '' bash -lc {shlex.quote(remote_cmd)}"
+    return run_ssh_stream(args, command, input_text=f"{sudo_password}\n")
 
 
 def prompt_sudo_password(args: argparse.Namespace) -> str | None:
@@ -223,6 +250,38 @@ def run_bootstrap_with_sudo_password(
     console_port = shlex.quote(str(args.console_port))
     remote_tmp_q = shlex.quote(remote_tmp)
     return run_sudo_shell(
+        args,
+        (
+            f"bash {remote_tmp_q} {shlex.quote(mode)} {remote_root} {console_port}; "
+            "status=$?; "
+            f"rm -f {remote_tmp_q}; "
+            "exit $status"
+        ),
+        sudo_password,
+    )
+
+
+def run_bootstrap_stream(args: argparse.Namespace, mode: str) -> subprocess.CompletedProcess[None]:
+    script = REMOTE_BOOTSTRAP.read_text(encoding="utf-8").replace("\r\n", "\n")
+    remote_root = shlex.quote(args.remote_root)
+    console_port = shlex.quote(str(args.console_port))
+    return run_ssh_stream(
+        args,
+        f"bash -s -- {shlex.quote(mode)} {remote_root} {console_port}",
+        input_text=script,
+    )
+
+
+def run_bootstrap_with_sudo_password_stream(
+    args: argparse.Namespace,
+    mode: str,
+    sudo_password: str,
+) -> subprocess.CompletedProcess[None]:
+    remote_tmp = upload_bootstrap_tmp(args)
+    remote_root = shlex.quote(args.remote_root)
+    console_port = shlex.quote(str(args.console_port))
+    remote_tmp_q = shlex.quote(remote_tmp)
+    return run_sudo_shell_stream(
         args,
         (
             f"bash {remote_tmp_q} {shlex.quote(mode)} {remote_root} {console_port}; "
@@ -414,13 +473,12 @@ def main() -> int:
     print("Applying remote bootstrap...")
     try:
         if sudo_password:
-            apply_result = run_bootstrap_with_sudo_password(args, "apply", sudo_password)
+            run_bootstrap_with_sudo_password_stream(args, "apply", sudo_password)
         else:
-            apply_result = run_bootstrap(args, "apply")
+            run_bootstrap_stream(args, "apply")
     except subprocess.CalledProcessError as exc:
         print_command_failure(exc)
         return 1
-    print(apply_result.stdout, end="")
 
     print("Uploading bootstrap scaffold...")
     try:
@@ -439,13 +497,12 @@ def main() -> int:
     print("Finalizing console service...")
     try:
         if sudo_password:
-            finalize_result = run_bootstrap_with_sudo_password(args, "finalize", sudo_password)
+            run_bootstrap_with_sudo_password_stream(args, "finalize", sudo_password)
         else:
-            finalize_result = run_bootstrap(args, "finalize")
+            run_bootstrap_stream(args, "finalize")
     except subprocess.CalledProcessError as exc:
         print_command_failure(exc)
         return 1
-    print(finalize_result.stdout, end="")
 
     print("Done.")
     print(f"Console root: {args.remote_root}")
