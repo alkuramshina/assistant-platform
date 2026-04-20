@@ -9,6 +9,9 @@ from installer import install
 
 
 class InstallerTest(unittest.TestCase):
+    def test_version_does_not_expose_phase_marker(self) -> None:
+        self.assertNotIn("phase", install.VERSION.lower())
+
     def test_run_sends_input_text_as_bytes(self) -> None:
         captured: dict[str, object] = {}
 

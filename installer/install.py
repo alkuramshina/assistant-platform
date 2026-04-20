@@ -16,7 +16,7 @@ from pathlib import Path
 DEFAULT_REMOTE_ROOT = "/opt/nanobot-console"
 ROOT = Path(__file__).resolve().parents[1]
 REMOTE_BOOTSTRAP = ROOT / "installer" / "remote" / "bootstrap.sh"
-VERSION = "prototype-phase-5"
+VERSION = "nanobot-console-prototype"
 PACKAGE_PATHS = [
     "console",
     "docker",
