@@ -136,7 +136,10 @@ def configure_interactive(args: argparse.Namespace) -> None:
         prompt_value("SSH identity file path, or press Enter to use the default SSH key", args.identity_file or "")
         or None
     )
-    args.remote_root = prompt_value("Remote install root", args.remote_root)
+    args.remote_root = prompt_value(
+        "Remote install root on the VM, or press Enter to use /opt/nanobot-console",
+        args.remote_root,
+    )
     args.console_port = prompt_value("Console port", str(args.console_port))
 
 
