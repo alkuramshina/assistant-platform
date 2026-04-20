@@ -12,6 +12,7 @@ class BotInput:
     allowed_user_ids: str = ""
     provider_base_url: str = ""
     provider_model: str = ""
+    proxy_url: str = ""
     system_prompt: str = ""
     channel_secret_ref: str = ""
     provider_secret_ref: str = ""
@@ -28,6 +29,7 @@ class BotInput:
             allowed_user_ids=str(payload.get("allowed_user_ids", "")).strip(),
             provider_base_url=str(payload.get("provider_base_url", "")).strip(),
             provider_model=str(payload.get("provider_model", "")).strip(),
+            proxy_url=str(payload.get("proxy_url", "")).strip(),
             system_prompt=str(payload.get("system_prompt", "")).strip(),
             channel_secret_ref=str(payload.get("channel_secret_ref", "")).strip(),
             provider_secret_ref=str(payload.get("provider_secret_ref", "")).strip(),

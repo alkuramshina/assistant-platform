@@ -145,6 +145,7 @@ function renderSelected() {
   els.details.innerHTML = `
     <dt>ID</dt><dd>${escapeHtml(bot.id)}</dd>
     <dt>Allowed users</dt><dd>${escapeHtml(bot.allowed_user_ids || "not set")}</dd>
+    <dt>Proxy URL</dt><dd>${escapeHtml(bot.proxy_url || "not set")}</dd>
     <dt>Provider URL</dt><dd>${escapeHtml(bot.provider_base_url || "not set")}</dd>
     <dt>Model</dt><dd>${escapeHtml(bot.provider_model || "not set")}</dd>
     <dt>Telegram token</dt><dd>${bot.channel_secret_ref ? "stored server-side" : "not set"}</dd>

@@ -162,6 +162,20 @@ class DeploymentEngine:
         base_url = self._yaml_string(str(bot.get("provider_base_url", "")))
         prompt = self._yaml_string(str(bot.get("system_prompt", "")))
         allow = self._yaml_string(str(bot.get("allowed_user_ids", "")))
+        proxy_url = str(bot.get("proxy_url", "")).strip()
+        proxy_env = ""
+        if proxy_url:
+            proxy = self._yaml_string(proxy_url)
+            no_proxy = self._yaml_string("localhost,127.0.0.1,host.docker.internal")
+            proxy_env = f"""      HTTP_PROXY: {proxy}
+      HTTPS_PROXY: {proxy}
+      ALL_PROXY: {proxy}
+      http_proxy: {proxy}
+      https_proxy: {proxy}
+      all_proxy: {proxy}
+      NO_PROXY: {no_proxy}
+      no_proxy: {no_proxy}
+"""
 
         return f"""services:
   nanobot:
@@ -185,6 +199,7 @@ class DeploymentEngine:
       TELEGRAM_ENABLED: "true"
       NANOBOT_CONSOLE_BOT_ID: {self._yaml_string(str(bot.get("id", "")))}
       NANOBOT_CONSOLE_ACTIVITY_URL: {self._yaml_string(str(bot.get("activity_url", "")))}
+{proxy_env.rstrip()}
     volumes:
       - {data_volume}
       - {workspace_volume}

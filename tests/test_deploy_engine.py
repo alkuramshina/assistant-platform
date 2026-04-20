@@ -113,12 +113,15 @@ class DeploymentEngineTest(unittest.TestCase):
             bot = bot_record(tmp)
             bot["provider_model"] = "nvidia/nemotron-3-super-120b-a12b:free"
             bot["provider_base_url"] = "https://openrouter.ai/api/v1"
+            bot["proxy_url"] = "http://host.docker.internal:10801"
             bot["system_prompt"] = "Line one:\n- keep this as text\nLine three"
 
             paths = engine.deploy(bot)
             compose = paths.compose.read_text(encoding="utf-8")
 
             self.assertIn('DEFAULT_MODEL: "nvidia/nemotron-3-super-120b-a12b:free"', compose)
+            self.assertIn('HTTPS_PROXY: "http://host.docker.internal:10801"', compose)
+            self.assertIn('NO_PROXY: "localhost,127.0.0.1,host.docker.internal"', compose)
             self.assertIn('SYSTEM_PROMPT: "Line one:\\n- keep this as text\\nLine three"', compose)
             self.assertIn(f'- "{paths.data.resolve().as_posix()}:/home/app/.nanobot"', compose)
             self.assertNotIn("\n- keep this as text", compose)

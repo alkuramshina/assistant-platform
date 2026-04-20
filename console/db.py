@@ -30,6 +30,7 @@ def init_db(conn: sqlite3.Connection) -> None:
           allowed_user_ids TEXT NOT NULL DEFAULT '',
           provider_base_url TEXT NOT NULL DEFAULT '',
           provider_model TEXT NOT NULL DEFAULT '',
+          proxy_url TEXT NOT NULL DEFAULT '',
           system_prompt TEXT NOT NULL DEFAULT '',
           channel_secret_ref TEXT NOT NULL DEFAULT '',
           provider_secret_ref TEXT NOT NULL DEFAULT '',
@@ -52,7 +53,14 @@ def init_db(conn: sqlite3.Connection) -> None:
         );
         """
     )
+    _ensure_column(conn, "bots", "proxy_url", "TEXT NOT NULL DEFAULT ''")
     conn.commit()
+
+
+def _ensure_column(conn: sqlite3.Connection, table: str, column: str, definition: str) -> None:
+    rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
+    if column not in {row["name"] for row in rows}:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
 
 
 def _now() -> int:
@@ -67,6 +75,7 @@ def _bot_public(row: sqlite3.Row) -> dict[str, Any]:
         "allowed_user_ids": row["allowed_user_ids"],
         "provider_base_url": row["provider_base_url"],
         "provider_model": row["provider_model"],
+        "proxy_url": row["proxy_url"],
         "system_prompt": row["system_prompt"],
         "channel_secret_ref": row["channel_secret_ref"],
         "provider_secret_ref": row["provider_secret_ref"],
@@ -97,8 +106,8 @@ def create_bot(conn: sqlite3.Connection, data: BotInput) -> dict[str, Any]:
         """
         INSERT INTO bots (
           id, name, status, allowed_user_ids, provider_base_url, provider_model,
-          system_prompt, channel_secret_ref, provider_secret_ref, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          proxy_url, system_prompt, channel_secret_ref, provider_secret_ref, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             bot_id,
@@ -107,6 +116,7 @@ def create_bot(conn: sqlite3.Connection, data: BotInput) -> dict[str, Any]:
             data.allowed_user_ids,
             data.provider_base_url,
             data.provider_model,
+            data.proxy_url,
             data.system_prompt,
             data.channel_secret_ref,
             data.provider_secret_ref,

@@ -44,6 +44,7 @@ class ConsoleUITest(unittest.TestCase):
         self.assertIn("Runtime logs", body)
         self.assertIn("secret file", body)
         self.assertIn("Telegram token", body)
+        self.assertIn("Proxy URL", body)
         self.assertIn("Provider API key", body)
         self.assertIn("Provider API base URL", body)
         self.assertIn('id="provider-model"', body)
