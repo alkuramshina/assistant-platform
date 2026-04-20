@@ -14,6 +14,11 @@
 - Do not store agent session logs, scratchpads, checkpoints, or long generated summaries in tracked project docs.
 - Move important decisions discovered during agent work into durable docs before relying on them.
 
+## Workflow Preferences
+
+- Codex may run `git add` and `git commit` for its own scoped changes without asking for separate confirmation.
+- Do not commit unrelated user changes or real secrets.
+
 ## Project Constraints
 
 - Current prototype is an SSH-installed multi-bot console for customer-provided Linux servers/VMs.
