@@ -46,14 +46,46 @@ services:
       - nanobot_data:/home/app/.nanobot
       - nanobot_workspace:/workspace
     secrets:
-      - openrouter_api_key
-      - openai_api_key
-      - anthropic_api_key
-      - vllm_api_key
-      - telegram_token
-      - slack_bot_token
-      - slack_app_token
-      - feishu_app_secret
+      - source: openrouter_api_key
+        target: openrouter_api_key
+        uid: "1000"
+        gid: "1000"
+        mode: 0440
+      - source: openai_api_key
+        target: openai_api_key
+        uid: "1000"
+        gid: "1000"
+        mode: 0440
+      - source: anthropic_api_key
+        target: anthropic_api_key
+        uid: "1000"
+        gid: "1000"
+        mode: 0440
+      - source: vllm_api_key
+        target: vllm_api_key
+        uid: "1000"
+        gid: "1000"
+        mode: 0440
+      - source: telegram_token
+        target: telegram_token
+        uid: "1000"
+        gid: "1000"
+        mode: 0440
+      - source: slack_bot_token
+        target: slack_bot_token
+        uid: "1000"
+        gid: "1000"
+        mode: 0440
+      - source: slack_app_token
+        target: slack_app_token
+        uid: "1000"
+        gid: "1000"
+        mode: 0440
+      - source: feishu_app_secret
+        target: feishu_app_secret
+        uid: "1000"
+        gid: "1000"
+        mode: 0440
     healthcheck:
       test:
         [

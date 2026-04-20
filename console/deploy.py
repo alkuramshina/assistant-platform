@@ -172,8 +172,16 @@ class DeploymentEngine:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     secrets:
-      - provider_secret
-      - channel_secret
+      - source: provider_secret
+        target: provider_secret
+        uid: "1000"
+        gid: "1000"
+        mode: 0440
+      - source: channel_secret
+        target: channel_secret
+        uid: "1000"
+        gid: "1000"
+        mode: 0440
     command: ["/app/entrypoint.sh"]
 
 secrets:
