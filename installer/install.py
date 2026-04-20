@@ -16,6 +16,7 @@ from pathlib import Path
 DEFAULT_REMOTE_ROOT = "/opt/nanobot-console"
 ROOT = Path(__file__).resolve().parents[1]
 REMOTE_BOOTSTRAP = ROOT / "installer" / "remote" / "bootstrap.sh"
+REMOTE_CONTROL = ROOT / "installer" / "remote" / "consolectl.sh"
 VERSION = "nanobot-console"
 PACKAGE_PATHS = [
     "console",
@@ -240,6 +241,18 @@ def upload_bootstrap_tmp(args: argparse.Namespace) -> str:
     return remote_tmp
 
 
+def upload_text_tmp(args: argparse.Namespace, source: Path, remote_tmp: str) -> str:
+    text = source.read_text(encoding="utf-8").replace("\r\n", "\n")
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", newline="\n", delete=False) as tmp:
+        tmp.write(text)
+        tmp_path = Path(tmp.name)
+    try:
+        run([*scp_base(args), str(tmp_path), f"{args.target}:{remote_tmp}"])
+    finally:
+        tmp_path.unlink(missing_ok=True)
+    return remote_tmp
+
+
 def run_bootstrap_with_sudo_password(
     args: argparse.Namespace,
     mode: str,
@@ -335,26 +348,29 @@ def confirm(args: argparse.Namespace, missing: list[str]) -> bool:
 
 
 def upload_scaffold(args: argparse.Namespace, sudo_password: str | None = None) -> None:
-    remote_tmp = "/tmp/nanobot-console-bootstrap.sh"
-    run([*scp_base(args), str(REMOTE_BOOTSTRAP), f"{args.target}:{remote_tmp}"])
+    remote_tmp = upload_text_tmp(args, REMOTE_BOOTSTRAP, "/tmp/nanobot-console-bootstrap.sh")
+    remote_ctl_tmp = upload_text_tmp(args, REMOTE_CONTROL, "/tmp/nanobot-console-consolectl.sh")
 
     remote_root = shlex.quote(args.remote_root)
     remote_tmp_q = shlex.quote(remote_tmp)
+    remote_ctl_tmp_q = shlex.quote(remote_ctl_tmp)
     version_q = shlex.quote(VERSION)
     if sudo_password:
         command = (
             f"mkdir -p {remote_root} && "
             f"install -m 0755 {remote_tmp_q} {remote_root}/bootstrap.sh && "
+            f"install -m 0755 {remote_ctl_tmp_q} {remote_root}/consolectl && "
             f"printf '%s\\n' {version_q} | tee {remote_root}/VERSION >/dev/null && "
-            f"rm -f {remote_tmp_q}"
+            f"rm -f {remote_tmp_q} {remote_ctl_tmp_q}"
         )
         run_sudo_shell(args, command, sudo_password)
         return
 
     command = (
         f"sudo install -m 0755 {remote_tmp_q} {remote_root}/bootstrap.sh && "
+        f"sudo install -m 0755 {remote_ctl_tmp_q} {remote_root}/consolectl && "
         f"printf '%s\\n' {version_q} | sudo tee {remote_root}/VERSION >/dev/null && "
-        f"sudo rm -f {remote_tmp_q}"
+        f"sudo rm -f {remote_tmp_q} {remote_ctl_tmp_q}"
     )
     run_ssh(args, command)
 
@@ -408,6 +424,9 @@ def main() -> int:
         return 2
     if not REMOTE_BOOTSTRAP.exists():
         print(f"Missing remote bootstrap script: {REMOTE_BOOTSTRAP}", file=sys.stderr)
+        return 2
+    if not REMOTE_CONTROL.exists():
+        print(f"Missing remote control script: {REMOTE_CONTROL}", file=sys.stderr)
         return 2
 
     sudo_password: str | None = None
@@ -507,6 +526,7 @@ def main() -> int:
     print("Done.")
     print(f"Console root: {args.remote_root}")
     print(f"Console URL: http://{args.target.split('@')[-1]}:{args.console_port}/")
+    print(f"Control command: sudo {args.remote_root}/consolectl status")
     return 0
 
 

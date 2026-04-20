@@ -29,6 +29,14 @@ class InstallerTest(unittest.TestCase):
         self.assertIn("docker_build=ok", script)
         self.assertIn("service_restart=start", script)
 
+    def test_control_script_has_service_commands(self) -> None:
+        script = install.REMOTE_CONTROL.read_text(encoding="utf-8")
+
+        self.assertIn("restart|status|logs|url", script)
+        self.assertIn("systemctl restart", script)
+        self.assertIn("journalctl -u", script)
+        self.assertIn("nanobot-console", script)
+
     def test_run_sends_input_text_as_bytes(self) -> None:
         captured: dict[str, object] = {}
 
@@ -191,6 +199,7 @@ class InstallerTest(unittest.TestCase):
 
         self.assertIn("mkdir -p /opt/nanobot-console", str(captured["command"]))
         self.assertIn("install -m 0755", str(captured["command"]))
+        self.assertIn("/opt/nanobot-console/consolectl", str(captured["command"]))
         self.assertEqual(captured["sudo_password"], "secret-pass")
 
     def test_bootstrap_runs_with_bash(self) -> None:
