@@ -43,6 +43,14 @@ ssh user@server
 ssh -o BatchMode=yes user@server "printf 'ssh=ok\n'"
 ```
 
+Set up SSH key login if BatchMode fails:
+
+```powershell
+ssh-keygen -t ed25519
+type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh user@server "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys"
+ssh -o BatchMode=yes user@server "printf 'ssh=ok\n'"
+```
+
 Notes:
 
 - installer uses `BatchMode=yes`, so SSH password prompts are disabled during install;
