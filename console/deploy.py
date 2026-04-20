@@ -95,7 +95,18 @@ class DeploymentEngine:
         project = self.project_name(bot_id)
         safe_tail = max(20, min(int(tail), 1000))
         return self.runner.capture(
-            ["docker", "compose", "-p", project, "-f", str(paths.compose), "logs", "--tail", str(safe_tail)],
+            [
+                "docker",
+                "compose",
+                "-p",
+                project,
+                "-f",
+                str(paths.compose),
+                "logs",
+                "--timestamps",
+                "--tail",
+                str(safe_tail),
+            ],
             cwd=paths.root,
         )
 

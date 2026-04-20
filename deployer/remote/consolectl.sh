@@ -51,7 +51,7 @@ case "${1:-}" in
       printf 'Compose file not found: %s\n' "$compose" >&2
       exit 1
     fi
-    sudo docker compose -p "$project" -f "$compose" logs --tail "${3:-120}"
+    sudo docker compose -p "$project" -f "$compose" logs --timestamps --tail "${3:-120}"
     ;;
   url)
     ip="$(host_ip)"

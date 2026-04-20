@@ -135,6 +135,7 @@ class DeploymentEngineTest(unittest.TestCase):
             command, cwd = runner.commands[-1]
             self.assertEqual(command[:4], ["docker", "compose", "-p", "nanobot_bot_abc"])
             self.assertIn("logs", command)
+            self.assertIn("--timestamps", command)
             self.assertEqual(cwd, tmp / "bots" / bot["id"])
 
     def test_missing_allowlist_fails_before_runner(self) -> None:

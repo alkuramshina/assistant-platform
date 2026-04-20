@@ -39,6 +39,7 @@ class DeployerTest(unittest.TestCase):
         self.assertIn("systemctl restart", script)
         self.assertIn("journalctl -u", script)
         self.assertIn("docker compose -p", script)
+        self.assertIn("--timestamps", script)
         self.assertIn("nanobot-console", script)
 
     def test_run_sends_input_text_as_bytes(self) -> None:
