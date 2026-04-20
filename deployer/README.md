@@ -15,6 +15,15 @@ py -3 deployer\deploy.py
 py -3 deployer\deploy.py user@server
 ```
 
+The first interactive run saves non-secret deploy settings in `.deployer.json`.
+Later runs reuse them, so normally only the remote sudo password is requested.
+
+Ignore saved settings for one run:
+
+```powershell
+py -3 deployer\deploy.py --reset-config
+```
+
 Non-interactive apply:
 
 ```powershell
@@ -65,6 +74,9 @@ ssh -o BatchMode=yes user@server "printf 'ssh=ok\n'"
 
 Notes:
 
+- `.deployer.json` stores SSH target, port, identity file path, remote root, console port, and remembered host-change approval only;
+- `.deployer.json` is local and gitignored;
+- remote sudo password is never stored;
 - without `--yes`, deployer can ask for missing connection settings and offer retry prompts after SSH/sudo fixes;
 - with `--yes`, deployer never prompts and exits on failed preflight;
 - deployer uses `BatchMode=yes`, so SSH password prompts are disabled during deploy;

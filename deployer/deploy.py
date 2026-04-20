@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import getpass
+import json
 import shlex
 import subprocess
 import sys
@@ -15,9 +16,11 @@ from pathlib import Path
 
 DEFAULT_REMOTE_ROOT = "/opt/nanobot-console"
 ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_CONFIG_PATH = ROOT / ".deployer.json"
 REMOTE_BOOTSTRAP = ROOT / "deployer" / "remote" / "bootstrap.sh"
 REMOTE_CONTROL = ROOT / "deployer" / "remote" / "consolectl.sh"
 VERSION = "nanobot-console"
+CONFIG_KEYS = ("target", "port", "identity_file", "remote_root", "console_port", "approved_host_changes")
 PACKAGE_PATHS = [
     "console",
     "docker",
@@ -36,13 +39,59 @@ def parse_args() -> argparse.Namespace:
         )
     )
     parser.add_argument("target", nargs="?", help="SSH target, for example ubuntu@example.com")
-    parser.add_argument("--port", default="22", help="SSH port, default: 22")
+    parser.add_argument("--port", help="SSH port, default: 22")
     parser.add_argument("--identity-file", help="SSH private key path")
-    parser.add_argument("--remote-root", default=DEFAULT_REMOTE_ROOT, help="Remote deploy root")
-    parser.add_argument("--console-port", default="8787", help="Console port, default: 8787")
+    parser.add_argument("--remote-root", help=f"Remote deploy root, default: {DEFAULT_REMOTE_ROOT}")
+    parser.add_argument("--console-port", help="Console port, default: 8787")
+    parser.add_argument("--config", default=str(DEFAULT_CONFIG_PATH), help="Local deployer config path")
+    parser.add_argument("--no-save-config", action="store_true", help="Do not write local deployer config")
+    parser.add_argument("--reset-config", action="store_true", help="Ignore saved deployer config for this run")
     parser.add_argument("--dry-run", action="store_true", help="Probe and print planned changes only")
     parser.add_argument("--yes", action="store_true", help="Non-interactive apply: approve host changes and fail instead of retry prompts")
     return parser.parse_args()
+
+
+def load_config(path: str | Path, *, reset: bool = False) -> dict[str, str]:
+    if reset:
+        return {}
+    config_path = Path(path)
+    if not config_path.is_file():
+        return {}
+    try:
+        raw = json.loads(config_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    if not isinstance(raw, dict):
+        return {}
+    return {key: str(raw[key]) for key in CONFIG_KEYS if key in raw and raw[key] not in (None, "")}
+
+
+def apply_config(args: argparse.Namespace, config: dict[str, str]) -> None:
+    args.target = args.target or config.get("target")
+    args.port = args.port or config.get("port") or "22"
+    args.identity_file = args.identity_file or config.get("identity_file") or None
+    args.remote_root = args.remote_root or config.get("remote_root") or DEFAULT_REMOTE_ROOT
+    args.console_port = args.console_port or config.get("console_port") or "8787"
+    args.saved_host_approval = config.get("approved_host_changes") == "true"
+
+
+def save_config(args: argparse.Namespace, *, approved_host_changes: bool | None = None) -> None:
+    if args.no_save_config:
+        return
+    config_path = Path(args.config)
+    data = {
+        "target": args.target,
+        "port": str(args.port),
+        "remote_root": args.remote_root,
+        "console_port": str(args.console_port),
+    }
+    if args.identity_file:
+        data["identity_file"] = args.identity_file
+    approval = approved_host_changes if approved_host_changes is not None else getattr(args, "saved_host_approval", False)
+    if approval:
+        data["approved_host_changes"] = "true"
+    config_path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(f"Saved deployer config: {config_path}")
 
 
 def ssh_base(args: argparse.Namespace) -> list[str]:
@@ -337,6 +386,10 @@ def missing_prereqs(probe: dict[str, str]) -> list[str]:
 def confirm(args: argparse.Namespace, missing: list[str]) -> bool:
     if args.yes:
         return True
+    if getattr(args, "saved_host_approval", False):
+        print()
+        print(f"Using saved host-change approval from {args.config}.")
+        return True
     print()
     print("Planned host changes:")
     print(f"  - create/update {args.remote_root}")
@@ -418,6 +471,7 @@ def upload_app(args: argparse.Namespace, sudo_password: str | None = None) -> No
 
 def main() -> int:
     args = parse_args()
+    apply_config(args, load_config(args.config, reset=args.reset_config))
     configure_interactive(args)
     if not args.target:
         print("Missing SSH target.", file=sys.stderr)
@@ -459,6 +513,7 @@ def main() -> int:
             return 1
         probe = parse_probe(probe_result.stdout)
         print_probe(probe)
+        save_config(args)
         missing = missing_prereqs(probe)
         if args.dry_run:
             break
@@ -485,9 +540,11 @@ def main() -> int:
             print(f"  - prerequisite attention needed: {', '.join(missing)}")
         return 0
 
-    if not confirm(args, missing):
+    approved = confirm(args, missing)
+    if not approved:
         print("Aborted: host changes were not approved.")
         return 1
+    save_config(args, approved_host_changes=True)
 
     print("Applying remote bootstrap...")
     try:

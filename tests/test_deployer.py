@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 import tarfile
 import unittest
+from pathlib import Path
+from uuid import uuid4
 
 from deployer import deploy
 
@@ -123,6 +126,58 @@ class DeployerTest(unittest.TestCase):
         )
 
         self.assertEqual(missing, ["sudo password or non-interactive sudo"])
+
+    def test_deployer_config_roundtrip_excludes_sudo_password(self) -> None:
+        config_dir = Path(".test-tmp") / uuid4().hex
+        config_dir.mkdir(parents=True, exist_ok=False)
+        config = config_dir / ".deployer.json"
+        args = argparse.Namespace(
+            config=str(config),
+            no_save_config=False,
+            target="user@example.com",
+            port="2222",
+            identity_file="C:/Users/example/.ssh/id_ed25519",
+            remote_root="/opt/nanobot-console",
+            console_port="8787",
+            saved_host_approval=False,
+        )
+
+        deploy.save_config(args, approved_host_changes=True)
+        loaded = deploy.load_config(config)
+        raw_json = json.loads(config.read_text(encoding="utf-8"))
+
+        self.assertEqual(loaded["target"], "user@example.com")
+        self.assertEqual(loaded["port"], "2222")
+        self.assertEqual(loaded["approved_host_changes"], "true")
+        self.assertNotIn("password", json.dumps(raw_json).lower())
+
+    def test_apply_config_fills_missing_cli_values(self) -> None:
+        args = argparse.Namespace(
+            target=None,
+            port=None,
+            identity_file=None,
+            remote_root=None,
+            console_port=None,
+        )
+
+        deploy.apply_config(
+            args,
+            {
+                "target": "user@example.com",
+                "port": "2222",
+                "identity_file": "key.pem",
+                "remote_root": "/srv/nanobot",
+                "console_port": "9876",
+                "approved_host_changes": "true",
+            },
+        )
+
+        self.assertEqual(args.target, "user@example.com")
+        self.assertEqual(args.port, "2222")
+        self.assertEqual(args.identity_file, "key.pem")
+        self.assertEqual(args.remote_root, "/srv/nanobot")
+        self.assertEqual(args.console_port, "9876")
+        self.assertTrue(args.saved_host_approval)
 
     def test_run_sudo_shell_passes_password_via_stdin(self) -> None:
         args = argparse.Namespace(port="22", identity_file=None, target="user@example.com")
