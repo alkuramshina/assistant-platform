@@ -67,14 +67,6 @@ h2 {
   font-size: 20px;
 }
 
-.eyebrow {
-  margin-bottom: 4px;
-  color: #6b235f;
-  font-size: 13px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
 .notice {
   margin: 20px 0;
   padding: 12px 14px;
@@ -96,9 +88,22 @@ h2 {
   background: #fff;
 }
 
-.detail,
 .logs {
   grid-column: span 1;
+}
+
+fieldset {
+  margin: 0 0 18px;
+  padding: 0;
+  border: 0;
+  border-top: 1px solid #d8ded3;
+}
+
+legend {
+  padding: 0 10px 10px 0;
+  color: #4f554b;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 label {
@@ -126,6 +131,17 @@ textarea {
 .log-list {
   display: grid;
   gap: 10px;
+}
+
+.bot-manager {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+}
+
+.detail {
+  padding-top: 16px;
+  border-top: 1px solid #d8ded3;
 }
 
 .bot-item {

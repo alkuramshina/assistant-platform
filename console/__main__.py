@@ -1,4 +1,4 @@
-"""CLI entry point for the prototype console API."""
+"""CLI entry point for the console API."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from .api import serve
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run the local prototype console API")
+    parser = argparse.ArgumentParser(description="Run the Nanobot Console API")
     parser.add_argument("--db", default="console.db", help="SQLite database path")
     parser.add_argument("--bot-root", default=None, help="Bot project root, default: DB directory/bots")
     parser.add_argument("--secret-root", default=None, help="Secret root, default: DB directory/secrets")

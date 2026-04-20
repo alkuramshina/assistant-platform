@@ -12,7 +12,7 @@ from console.api import ConsoleAPI
 
 class ConsoleUITest(unittest.TestCase):
     def setUp(self) -> None:
-        self.tmp = tempfile.TemporaryDirectory()
+        self.tmp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
         self.server = ConsoleAPI(("127.0.0.1", 0), Path(self.tmp.name) / "console.db")
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
@@ -23,7 +23,10 @@ class ConsoleUITest(unittest.TestCase):
         self.server.shutdown()
         self.server.server_close()
         self.thread.join(timeout=5)
-        self.tmp.cleanup()
+        try:
+            self.tmp.cleanup()
+        except PermissionError:
+            pass
 
     def read(self, path: str) -> tuple[str, str]:
         with urllib.request.urlopen(f"{self.base}{path}", timeout=5) as response:
@@ -42,7 +45,13 @@ class ConsoleUITest(unittest.TestCase):
         self.assertIn("Telegram token", body)
         self.assertIn("Provider API key", body)
         self.assertIn("Provider API base URL", body)
+        self.assertIn("<legend>Bot</legend>", body)
+        self.assertIn("<legend>Telegram</legend>", body)
+        self.assertIn("<legend>Model</legend>", body)
+        self.assertIn("Bot details", body)
         self.assertIn("/static/app.js", body)
+        self.assertNotIn("Local prototype", body)
+        self.assertNotIn("Select a bot", body)
         self.assertNotIn("Existing Telegram token secret file", body)
         self.assertNotIn("Existing provider API key secret file", body)
 

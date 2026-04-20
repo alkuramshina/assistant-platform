@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SSH bootstrap installer for the nanobot console prototype."""
+"""SSH bootstrap installer for Nanobot Console."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from pathlib import Path
 DEFAULT_REMOTE_ROOT = "/opt/nanobot-console"
 ROOT = Path(__file__).resolve().parents[1]
 REMOTE_BOOTSTRAP = ROOT / "installer" / "remote" / "bootstrap.sh"
-VERSION = "nanobot-console-prototype"
+VERSION = "nanobot-console"
 PACKAGE_PATHS = [
     "console",
     "docker",

@@ -61,7 +61,7 @@ probe() {
 require_sudo() {
   if ! sudo -n true >/dev/null 2>&1; then
     printf 'error=sudo_password_required\n' >&2
-    printf 'configure passwordless sudo for this prototype installer, or run with a user that can sudo non-interactively\n' >&2
+    printf 'run interactively with a sudo password, configure non-interactive sudo by policy, or use a user that can sudo non-interactively\n' >&2
     return 1
   fi
 }
@@ -137,7 +137,7 @@ finalize() {
     printf 'service_unit=write\n'
     sudo tee "/etc/systemd/system/$SERVICE_NAME.service" >/dev/null <<EOF
 [Unit]
-Description=Nanobot Console Prototype
+Description=Nanobot Console
 After=network-online.target docker.service
 Wants=network-online.target
 

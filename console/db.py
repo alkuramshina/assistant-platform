@@ -1,4 +1,4 @@
-"""SQLite persistence for the prototype console."""
+"""SQLite persistence for the console."""
 
 from __future__ import annotations
 

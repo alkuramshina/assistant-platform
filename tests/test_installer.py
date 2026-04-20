@@ -11,6 +11,7 @@ from installer import install
 class InstallerTest(unittest.TestCase):
     def test_version_does_not_expose_phase_marker(self) -> None:
         self.assertNotIn("phase", install.VERSION.lower())
+        self.assertNotIn("prototype", install.VERSION.lower())
 
     def test_bootstrap_has_compose_package_fallbacks(self) -> None:
         script = install.REMOTE_BOOTSTRAP.read_text(encoding="utf-8")

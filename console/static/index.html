@@ -10,7 +10,6 @@
     <main class="shell">
       <header class="topbar">
         <div>
-          <p class="eyebrow">Local prototype</p>
           <h1>Nanobot Console</h1>
         </div>
         <button id="refresh" type="button">Refresh</button>
@@ -23,56 +22,69 @@
       <section class="grid">
         <form id="bot-form" class="panel" autocomplete="off">
           <h2>Create bot</h2>
-          <label>
-            Bot name
-            <input name="name" required placeholder="support-bot">
-          </label>
-          <label>
-            Allowed Telegram user IDs
-            <input name="allowed_user_ids" placeholder="123456789,987654321">
-          </label>
-          <label>
-            Telegram token
-            <input name="channel_secret_value" type="password" required placeholder="BotFather token">
-          </label>
-          <label>
-            Provider API key
-            <input name="provider_secret_value" type="password" required placeholder="Provider API key">
-          </label>
-          <label>
-            Provider API base URL
-            <input name="provider_base_url" required placeholder="https://openrouter.ai/api/v1">
-          </label>
-          <label>
-            Model
-            <input name="provider_model" required placeholder="openrouter/free-model">
-          </label>
-          <label>
-            System prompt
-            <textarea name="system_prompt" rows="4" placeholder="Be concise and useful."></textarea>
-          </label>
+
+          <fieldset>
+            <legend>Bot</legend>
+            <label>
+              Bot name
+              <input name="name" required placeholder="support-bot">
+            </label>
+            <label>
+              System prompt
+              <textarea name="system_prompt" rows="4" placeholder="Be concise and useful."></textarea>
+            </label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Telegram</legend>
+            <label>
+              Telegram token
+              <input name="channel_secret_value" type="password" required placeholder="BotFather token">
+            </label>
+            <label>
+              Allowed Telegram user IDs
+              <input name="allowed_user_ids" placeholder="123456789,987654321">
+            </label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Model</legend>
+            <label>
+              Provider API base URL
+              <input name="provider_base_url" required placeholder="https://openrouter.ai/api/v1">
+            </label>
+            <label>
+              Provider API key
+              <input name="provider_secret_value" type="password" required placeholder="Provider API key">
+            </label>
+            <label>
+              Model
+              <input name="provider_model" required placeholder="openrouter/free-model">
+            </label>
+          </fieldset>
+
           <button type="submit">Create bot</button>
         </form>
 
-        <section class="panel">
+        <section class="panel bot-manager">
           <div class="section-head">
             <h2>Bots</h2>
             <span id="bot-count">0</span>
           </div>
           <div id="bots" class="bot-list" aria-live="polite"></div>
-        </section>
 
-        <section class="panel detail">
-          <div class="section-head">
-            <h2 id="selected-name">Select a bot</h2>
-            <span id="selected-status">idle</span>
+          <div class="detail">
+            <div class="section-head">
+              <h2 id="selected-name">Bot details</h2>
+              <span id="selected-status">idle</span>
+            </div>
+            <div class="bot-actions">
+              <button id="start" type="button" disabled>Start</button>
+              <button id="stop" type="button" disabled>Stop</button>
+            </div>
+            <dl id="bot-details"></dl>
+            <p id="message" class="message" role="status"></p>
           </div>
-          <div class="bot-actions">
-            <button id="start" type="button" disabled>Start</button>
-            <button id="stop" type="button" disabled>Stop</button>
-          </div>
-          <dl id="bot-details"></dl>
-          <p id="message" class="message" role="status"></p>
         </section>
 
         <section class="panel logs">

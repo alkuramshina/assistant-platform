@@ -1,6 +1,6 @@
 # Installer
 
-SSH installer for the prototype console.
+SSH installer for Nanobot Console.
 
 Dry-run probe:
 

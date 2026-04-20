@@ -1,4 +1,4 @@
-"""HTTP JSON API for the prototype console."""
+"""HTTP JSON API for the console."""
 
 from __future__ import annotations
 

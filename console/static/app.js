@@ -74,13 +74,13 @@ function renderBots() {
 function renderSelected() {
   const bot = selectedBot();
   if (!bot) {
-    els.selectedName.textContent = "Select a bot";
+    els.selectedName.textContent = "Bot details";
     els.selectedStatus.textContent = "idle";
     els.details.innerHTML = "";
     els.start.disabled = true;
     els.stop.disabled = true;
     els.reloadLogs.disabled = true;
-    els.logs.innerHTML = '<p class="empty">Select a bot to view Activity.</p>';
+    els.logs.innerHTML = '<p class="empty">Choose a bot to view Activity.</p>';
     return;
   }
 
