@@ -31,7 +31,7 @@ Prerequisites:
 - Target server:
   - Ubuntu-compatible Linux;
   - SSH server enabled;
-  - target user can run non-interactive `sudo`;
+  - target user can run `sudo`;
   - outbound network access.
 
 Preflight:
@@ -58,14 +58,9 @@ Notes:
 - without `--yes`, installer can ask for missing connection settings and offer retry prompts after SSH/sudo fixes;
 - with `--yes`, installer never prompts and exits on failed preflight;
 - installer uses `BatchMode=yes`, so SSH password prompts are disabled during install;
-- SSH key login solves SSH authentication only; `sudo` must be non-interactive too. If needed, add a temporary sudoers file on the VM:
-
-  ```bash
-  echo 'user ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/nanobot-console-user
-  sudo chmod 0440 /etc/sudoers.d/nanobot-console-user
-  sudo -n true
-  ```
-
+- SSH key login solves SSH authentication only; it does not remove the remote sudo password prompt;
+- interactive mode can ask for a remote sudo password for the install session and does not store it;
+- `--yes` mode requires non-interactive sudo because there is no prompt;
 - if BatchMode SSH fails, configure SSH key login first or use `--identity-file PATH_TO_KEY`;
 - default install root is `/opt/nanobot-console`;
 - missing Docker/Compose prerequisites require approval before installation;

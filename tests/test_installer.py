@@ -74,16 +74,28 @@ class InstallerTest(unittest.TestCase):
             }
         )
 
-        self.assertEqual(missing, ["passwordless sudo"])
+        self.assertEqual(missing, ["sudo password or non-interactive sudo"])
 
-    def test_sudo_setup_commands_use_target_user(self) -> None:
-        args = argparse.Namespace(target="ssh_user@ssh_ip_addr")
+    def test_run_sudo_shell_passes_password_via_stdin(self) -> None:
+        args = argparse.Namespace(port="22", identity_file=None, target="user@example.com")
+        captured: dict[str, object] = {}
 
-        commands = install.sudo_setup_commands(args)
+        def fake_run(cmd, *, input_text=None):
+            captured["cmd"] = cmd
+            captured["input_text"] = input_text
+            return subprocess.CompletedProcess(cmd, 0, "", "")
 
-        self.assertIn("ssh_user ALL=(ALL) NOPASSWD:ALL", commands[0])
-        self.assertIn("/etc/sudoers.d/nanobot-console-ssh_user", commands[0])
-        self.assertEqual(commands[-1], "sudo -n true")
+        original = install.run
+        try:
+            install.run = fake_run
+            install.run_sudo_shell(args, "true", "secret-pass")
+        finally:
+            install.run = original
+
+        command = " ".join(captured["cmd"])
+        self.assertIn("sudo -S", command)
+        self.assertNotIn("secret-pass", command)
+        self.assertEqual(captured["input_text"], "secret-pass\n")
 
     def test_bootstrap_runs_with_bash(self) -> None:
         args = argparse.Namespace(remote_root="/opt/test root", console_port="8787")

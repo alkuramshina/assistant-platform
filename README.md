@@ -51,7 +51,7 @@ ssh user@server "sudo -n true"
 
 Without `--yes`, installer can prompt for missing connection settings and retry after fixes. With `--yes`, it never prompts and exits on failed preflight.
 
-The installer uses `BatchMode=yes`, so SSH and `sudo` password prompts are disabled. SSH keys solve SSH login only; configure non-interactive sudo separately, or pass `--identity-file` for a specific SSH key.
+The installer uses `BatchMode=yes`, so SSH password prompts are disabled. SSH keys solve SSH login only. In interactive mode, installer can ask for your remote sudo password for the install session; `--yes` requires non-interactive sudo.
 
 If BatchMode SSH fails:
 

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import getpass
 import shlex
 import subprocess
 import sys
@@ -150,23 +151,14 @@ def wait_for_retry(args: argparse.Namespace, reason: str) -> bool:
     return answer not in {"q", "quit", "n", "no"}
 
 
-def sudo_setup_commands(args: argparse.Namespace) -> list[str]:
-    user = args.target.split("@", 1)[0] if "@" in args.target else args.target
-    sudoers = f"/etc/sudoers.d/nanobot-console-{user}"
-    return [
-        f"echo '{user} ALL=(ALL) NOPASSWD:ALL' | sudo tee {sudoers}",
-        f"sudo chmod 0440 {sudoers}",
-        "sudo -n true",
-    ]
-
-
 def print_sudo_help(args: argparse.Namespace) -> None:
     print()
     print("Remote sudo is not non-interactive.")
     print("SSH key login solves SSH authentication only; it does not remove the sudo password prompt.")
-    print("For this prototype installer, configure passwordless sudo for the target user on the VM:")
-    for command in sudo_setup_commands(args):
-        print(f"  {command}")
+    if args.yes:
+        print("Rerun without --yes to enter a sudo password interactively, or configure non-interactive sudo by your infrastructure policy.")
+    else:
+        print("Interactive installer can use your sudo password for this install session without storing it.")
 
 
 def run_ssh(
@@ -178,11 +170,63 @@ def run_ssh(
     return run([*ssh_base(args), remote_cmd], input_text=input_text)
 
 
+def run_sudo_shell(
+    args: argparse.Namespace,
+    remote_cmd: str,
+    sudo_password: str,
+) -> subprocess.CompletedProcess[str]:
+    command = f"sudo -S -p '' bash -lc {shlex.quote(remote_cmd)}"
+    return run_ssh(args, command, input_text=f"{sudo_password}\n")
+
+
+def prompt_sudo_password(args: argparse.Namespace) -> str | None:
+    if args.yes:
+        return None
+    password = getpass.getpass("Remote sudo password, blank to abort: ")
+    if not password:
+        return None
+    try:
+        run_sudo_shell(args, "true", password)
+    except subprocess.CalledProcessError as exc:
+        print_command_failure(exc)
+        return None
+    return password
+
+
 def run_bootstrap(args: argparse.Namespace, mode: str) -> subprocess.CompletedProcess[str]:
     script = REMOTE_BOOTSTRAP.read_text(encoding="utf-8").replace("\r\n", "\n")
     remote_root = shlex.quote(args.remote_root)
     console_port = shlex.quote(str(args.console_port))
     return run_ssh(args, f"bash -s -- {shlex.quote(mode)} {remote_root} {console_port}", input_text=script)
+
+
+def upload_bootstrap_tmp(args: argparse.Namespace) -> str:
+    remote_tmp = "/tmp/nanobot-console-bootstrap.sh"
+    script = REMOTE_BOOTSTRAP.read_text(encoding="utf-8").replace("\r\n", "\n")
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", newline="\n", delete=False) as tmp:
+        tmp.write(script)
+        tmp_path = Path(tmp.name)
+    try:
+        run([*scp_base(args), str(tmp_path), f"{args.target}:{remote_tmp}"])
+    finally:
+        tmp_path.unlink(missing_ok=True)
+    return remote_tmp
+
+
+def run_bootstrap_with_sudo_password(
+    args: argparse.Namespace,
+    mode: str,
+    sudo_password: str,
+) -> subprocess.CompletedProcess[str]:
+    remote_tmp = upload_bootstrap_tmp(args)
+    remote_root = shlex.quote(args.remote_root)
+    console_port = shlex.quote(str(args.console_port))
+    remote_tmp_q = shlex.quote(remote_tmp)
+    return run_sudo_shell(
+        args,
+        f"bash {remote_tmp_q} {shlex.quote(mode)} {remote_root} {console_port}; rm -f {remote_tmp_q}",
+        sudo_password,
+    )
 
 
 def parse_probe(output: str) -> dict[str, str]:
@@ -203,7 +247,7 @@ def print_probe(probe: dict[str, str]) -> None:
 def missing_prereqs(probe: dict[str, str]) -> list[str]:
     missing: list[str] = []
     if probe.get("sudo") != "ok":
-        missing.append("passwordless sudo")
+        missing.append("sudo password or non-interactive sudo")
     if probe.get("docker") != "ok":
         missing.append("Docker Engine")
     if probe.get("compose") != "ok":
@@ -226,13 +270,22 @@ def confirm(args: argparse.Namespace, missing: list[str]) -> bool:
     return answer == "yes"
 
 
-def upload_scaffold(args: argparse.Namespace) -> None:
+def upload_scaffold(args: argparse.Namespace, sudo_password: str | None = None) -> None:
     remote_tmp = "/tmp/nanobot-console-bootstrap.sh"
     run([*scp_base(args), str(REMOTE_BOOTSTRAP), f"{args.target}:{remote_tmp}"])
 
     remote_root = shlex.quote(args.remote_root)
     remote_tmp_q = shlex.quote(remote_tmp)
     version_q = shlex.quote(VERSION)
+    if sudo_password:
+        command = (
+            f"install -m 0755 {remote_tmp_q} {remote_root}/bootstrap.sh && "
+            f"printf '%s\\n' {version_q} | tee {remote_root}/VERSION >/dev/null && "
+            f"rm -f {remote_tmp_q}"
+        )
+        run_sudo_shell(args, command, sudo_password)
+        return
+
     command = (
         f"sudo install -m 0755 {remote_tmp_q} {remote_root}/bootstrap.sh && "
         f"printf '%s\\n' {version_q} | sudo tee {remote_root}/VERSION >/dev/null && "
@@ -253,7 +306,7 @@ def package_app() -> Path:
     return tmp_path
 
 
-def upload_app(args: argparse.Namespace) -> None:
+def upload_app(args: argparse.Namespace, sudo_password: str | None = None) -> None:
     package = package_app()
     remote_tmp = "/tmp/nanobot-console-app.tar.gz"
     try:
@@ -263,6 +316,16 @@ def upload_app(args: argparse.Namespace) -> None:
 
     remote_root = shlex.quote(args.remote_root)
     remote_tmp_q = shlex.quote(remote_tmp)
+    if sudo_password:
+        command = (
+            f"rm -rf {remote_root}/app && "
+            f"mkdir -p {remote_root}/app && "
+            f"tar -xzf {remote_tmp_q} -C {remote_root}/app && "
+            f"rm -f {remote_tmp_q}"
+        )
+        run_sudo_shell(args, command, sudo_password)
+        return
+
     command = (
         f"sudo rm -rf {remote_root}/app && "
         f"sudo mkdir -p {remote_root}/app && "
@@ -282,6 +345,7 @@ def main() -> int:
         print(f"Missing remote bootstrap script: {REMOTE_BOOTSTRAP}", file=sys.stderr)
         return 2
 
+    sudo_password: str | None = None
     while True:
         print(f"Target: {args.target}")
         print(f"Remote root: {args.remote_root}")
@@ -312,9 +376,15 @@ def main() -> int:
         probe = parse_probe(probe_result.stdout)
         print_probe(probe)
         missing = missing_prereqs(probe)
+        if args.dry_run:
+            break
         if probe.get("sudo") != "ok":
             print_sudo_help(args)
-            if wait_for_retry(args, "Passwordless sudo is not configured"):
+            sudo_password = prompt_sudo_password(args)
+            if sudo_password:
+                missing = [item for item in missing if item != "sudo password or non-interactive sudo"]
+                break
+            if wait_for_retry(args, "Sudo password was not accepted"):
                 continue
             return 1
         break
@@ -337,7 +407,10 @@ def main() -> int:
 
     print("Applying remote bootstrap...")
     try:
-        apply_result = run_bootstrap(args, "apply")
+        if sudo_password:
+            apply_result = run_bootstrap_with_sudo_password(args, "apply", sudo_password)
+        else:
+            apply_result = run_bootstrap(args, "apply")
     except subprocess.CalledProcessError as exc:
         print_command_failure(exc)
         return 1
@@ -345,21 +418,24 @@ def main() -> int:
 
     print("Uploading bootstrap scaffold...")
     try:
-        upload_scaffold(args)
+        upload_scaffold(args, sudo_password)
     except subprocess.CalledProcessError as exc:
         print_command_failure(exc)
         return 1
 
     print("Uploading app package...")
     try:
-        upload_app(args)
+        upload_app(args, sudo_password)
     except subprocess.CalledProcessError as exc:
         print_command_failure(exc)
         return 1
 
     print("Finalizing console service...")
     try:
-        finalize_result = run_bootstrap(args, "finalize")
+        if sudo_password:
+            finalize_result = run_bootstrap_with_sudo_password(args, "finalize", sudo_password)
+        else:
+            finalize_result = run_bootstrap(args, "finalize")
     except subprocess.CalledProcessError as exc:
         print_command_failure(exc)
         return 1
