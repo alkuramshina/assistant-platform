@@ -53,6 +53,7 @@ class InstallerTest(unittest.TestCase):
         self.assertIn("bash -s -- probe", str(captured["command"]))
         self.assertIn("/opt/test root", str(captured["command"]))
         self.assertIn("probe()", str(captured["input_text"]))
+        self.assertNotIn("\r\n", str(captured["input_text"]))
 
 
 if __name__ == "__main__":

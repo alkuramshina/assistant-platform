@@ -94,7 +94,7 @@ def run_ssh(
 
 
 def run_bootstrap(args: argparse.Namespace, mode: str) -> subprocess.CompletedProcess[str]:
-    script = REMOTE_BOOTSTRAP.read_text(encoding="utf-8")
+    script = REMOTE_BOOTSTRAP.read_text(encoding="utf-8").replace("\r\n", "\n")
     remote_root = shlex.quote(args.remote_root)
     console_port = shlex.quote(str(args.console_port))
     return run_ssh(args, f"bash -s -- {shlex.quote(mode)} {remote_root} {console_port}", input_text=script)
