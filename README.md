@@ -36,7 +36,17 @@ py -3 installer\install.py user@server
 
 The installer prepares the server, starts the console service, and prints the UI URL. Telegram/provider credentials are entered in the UI.
 
-Windows prereqs: Python 3 launcher, OpenSSH `ssh`, OpenSSH `scp`, and key-based SSH access to the server.
+Preflight on Windows:
+
+```powershell
+py -3 --version
+ssh -V
+scp
+ssh user@server
+ssh -o BatchMode=yes user@server "printf 'ssh=ok\n'"
+```
+
+The installer uses `BatchMode=yes`, so password prompts are disabled. Configure SSH key login first or pass `--identity-file`.
 
 ## Console API
 
