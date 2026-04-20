@@ -16,7 +16,7 @@
       </header>
 
       <p class="notice">
-        Keep this console private. Use it only on a trusted network or protect it with HTTPS and access control. Tokens are written to server-side secret files and are not shown again.
+        Keep this console private. Use it only on a trusted network or protect it with HTTPS and a login. Tokens are written to server-side secret files and are not shown again.
       </p>
 
       <section class="grid">
@@ -50,16 +50,16 @@
           <fieldset>
             <legend>Model</legend>
             <label>
-              Provider API base URL
-              <input name="provider_base_url" required placeholder="https://openrouter.ai/api/v1">
+              Model
+              <select id="provider-model" name="provider_model" required></select>
             </label>
             <label>
               Provider API key
               <input name="provider_secret_value" type="password" required placeholder="Provider API key">
             </label>
             <label>
-              Model
-              <input name="provider_model" required placeholder="openrouter/free-model">
+              Provider API base URL
+              <input id="provider-base-url" name="provider_base_url" required readonly>
             </label>
           </fieldset>
 

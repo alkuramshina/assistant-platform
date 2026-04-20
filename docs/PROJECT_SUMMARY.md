@@ -19,9 +19,8 @@ customer server -> SSH deployer -> console UI -> create bot -> Telegram -> activ
    - bot name;
    - Telegram token;
    - allowed Telegram user IDs;
-   - provider base URL;
    - provider API key;
-   - model name;
+   - supported model preset with provider base URL filled automatically;
    - optional system prompt.
 5. Console deploys an isolated bot instance.
 6. User talks to the bot in Telegram.

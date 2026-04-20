@@ -10,6 +10,34 @@ const endpoints = {
   stop: (id) => `/api/bots/${id}/stop`,
 };
 
+const modelPresets = [
+  {
+    label: "OpenRouter Free Router",
+    model: "openrouter/free",
+    baseUrl: "https://openrouter.ai/api/v1",
+  },
+  {
+    label: "NVIDIA Nemotron 3 Nano 30B A3B (free)",
+    model: "nvidia/nemotron-3-nano-30b-a3b:free",
+    baseUrl: "https://openrouter.ai/api/v1",
+  },
+  {
+    label: "NVIDIA Nemotron 3 Super (free)",
+    model: "nvidia/nemotron-3-super-120b-a12b:free",
+    baseUrl: "https://openrouter.ai/api/v1",
+  },
+  {
+    label: "Qwen3 Coder 480B A35B (free)",
+    model: "qwen/qwen3-coder:free",
+    baseUrl: "https://openrouter.ai/api/v1",
+  },
+  {
+    label: "Llama 3.3 70B Instruct (free)",
+    model: "meta-llama/llama-3.3-70b-instruct:free",
+    baseUrl: "https://openrouter.ai/api/v1",
+  },
+];
+
 const els = {
   form: document.querySelector("#bot-form"),
   refresh: document.querySelector("#refresh"),
@@ -21,6 +49,8 @@ const els = {
   start: document.querySelector("#start"),
   stop: document.querySelector("#stop"),
   message: document.querySelector("#message"),
+  model: document.querySelector("#provider-model"),
+  providerBaseUrl: document.querySelector("#provider-base-url"),
   reloadLogs: document.querySelector("#reload-logs"),
   logs: document.querySelector("#logs"),
 };
@@ -40,6 +70,23 @@ async function api(path, options = {}) {
 function setMessage(text, kind = "") {
   els.message.textContent = text;
   els.message.dataset.kind = kind;
+}
+
+function renderModelPresets() {
+  els.model.innerHTML = "";
+  modelPresets.forEach((preset) => {
+    const option = document.createElement("option");
+    option.value = preset.model;
+    option.dataset.baseUrl = preset.baseUrl;
+    option.textContent = preset.label;
+    els.model.append(option);
+  });
+  syncProviderBaseUrl();
+}
+
+function syncProviderBaseUrl() {
+  const selected = els.model.selectedOptions[0];
+  els.providerBaseUrl.value = selected?.dataset.baseUrl || "";
 }
 
 function selectedBot() {
@@ -153,6 +200,7 @@ async function createBot(event) {
       body: JSON.stringify(payload),
     });
     els.form.reset();
+    syncProviderBaseUrl();
     state.selectedId = created.bot.id;
     await loadBots();
     await loadLogs();
@@ -191,9 +239,11 @@ function escapeHtml(value) {
 }
 
 els.form.addEventListener("submit", createBot);
+els.model.addEventListener("change", syncProviderBaseUrl);
 els.refresh.addEventListener("click", () => loadBots().catch((error) => setMessage(error.message, "error")));
 els.start.addEventListener("click", () => runAction("start"));
 els.stop.addEventListener("click", () => runAction("stop"));
 els.reloadLogs.addEventListener("click", () => loadLogs().catch((error) => setMessage(error.message, "error")));
 
+renderModelPresets();
 loadBots().catch((error) => setMessage(error.message, "error"));
