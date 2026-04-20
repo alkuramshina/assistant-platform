@@ -63,6 +63,8 @@ Phase 8 console scope adds a minimal local UI for creating bots, listing statuse
 
 Phase 9 must prove the real installer-to-UI path on a Linux server or VM. The operator should not manually create console directories, copy app files, create secret folders, or run `python -m console`; the installer prepares the host, starts the console, and prints the URL. The operator then uses the UI to enter bot/provider settings, start one bot, complete a Telegram smoke test, and see request/response logs.
 
+Phase 10 must harden the prototype for non-local use: add an HTTPS reverse proxy path, keep plain HTTP limited to local/manual testing, and make the installer either configure TLS from operator-provided domain settings or print an explicit HTTP-only warning.
+
 ### Bot Instance
 
 Each bot is isolated:
@@ -101,6 +103,7 @@ Record the minimum useful audit trail:
 - Store provider and Telegram keys as server-side secret files.
 - Treat activity logs as sensitive user content.
 - Require explicit operator approval before the installer changes host packages or services.
+- Do not expose the console over plain HTTP outside local/manual testing.
 
 ## Roadmap
 
@@ -112,7 +115,7 @@ Record the minimum useful audit trail:
 | 7 | Bot template deployment engine |
 | 8 | Minimal console UI |
 | 9 | Installer-to-UI Telegram smoke path and activity logs |
-| 10 | Multi-bot isolation and prototype hardening |
+| 10 | Multi-bot isolation, HTTPS, and prototype hardening |
 
 ## Out Of Scope
 
