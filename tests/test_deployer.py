@@ -200,6 +200,34 @@ class DeployerTest(unittest.TestCase):
         self.assertNotIn("secret-pass", command)
         self.assertEqual(captured["input_text"], "secret-pass\n")
 
+    def test_prompt_sudo_password_retries_without_storing_password(self) -> None:
+        args = argparse.Namespace(yes=False)
+        attempts: list[str] = []
+        prompts = iter(["wrong-pass", "right-pass"])
+
+        def fake_getpass(prompt: str) -> str:
+            self.assertIn("Linux sudo password", prompt)
+            return next(prompts)
+
+        def fake_run_sudo_shell(args, command: str, sudo_password: str):
+            attempts.append(sudo_password)
+            if sudo_password == "wrong-pass":
+                raise subprocess.CalledProcessError(1, command, stderr="Sorry, try again.")
+            return subprocess.CompletedProcess(command, 0, "", "")
+
+        original_getpass = deploy.getpass.getpass
+        original_sudo = deploy.run_sudo_shell
+        try:
+            deploy.getpass.getpass = fake_getpass
+            deploy.run_sudo_shell = fake_run_sudo_shell
+            result = deploy.prompt_sudo_password(args)
+        finally:
+            deploy.getpass.getpass = original_getpass
+            deploy.run_sudo_shell = original_sudo
+
+        self.assertEqual(result, "right-pass")
+        self.assertEqual(attempts, ["wrong-pass", "right-pass"])
+
     def test_bootstrap_with_sudo_preserves_script_exit_status(self) -> None:
         args = argparse.Namespace(remote_root="/opt/nanobot-console", console_port="8787")
         captured: dict[str, object] = {}

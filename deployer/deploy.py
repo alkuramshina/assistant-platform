@@ -259,15 +259,21 @@ def run_sudo_shell_stream(
 def prompt_sudo_password(args: argparse.Namespace) -> str | None:
     if args.yes:
         return None
-    password = getpass.getpass("Remote sudo password, blank to abort: ")
-    if not password:
-        return None
-    try:
-        run_sudo_shell(args, "true", password)
-    except subprocess.CalledProcessError as exc:
-        print_command_failure(exc)
-        return None
-    return password
+    for attempt in range(1, 4):
+        password = getpass.getpass("Remote Linux sudo password for the target user, blank to abort: ")
+        if not password:
+            return None
+        try:
+            run_sudo_shell(args, "true", password)
+        except subprocess.CalledProcessError:
+            remaining = 3 - attempt
+            if remaining:
+                print(f"Sudo password was not accepted. Try again ({remaining} attempts left).")
+                continue
+            print("Sudo password was not accepted.")
+            return None
+        return password
+    return None
 
 
 def run_bootstrap(args: argparse.Namespace, mode: str) -> subprocess.CompletedProcess[str]:
