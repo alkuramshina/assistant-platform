@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import subprocess
+import stat
+import os
 import unittest
 from contextlib import contextmanager
 from pathlib import Path
@@ -95,6 +97,12 @@ class DeploymentEngineTest(unittest.TestCase):
             self.assertTrue((tmp / "bots" / bot["id"] / "data").is_dir())
             self.assertTrue((tmp / "bots" / bot["id"] / "workspace").is_dir())
             self.assertTrue((tmp / "bots" / bot["id"] / "secrets" / "channel").is_file())
+            if os.name != "nt":
+                self.assertEqual(stat.S_IMODE((tmp / "bots" / bot["id"] / "secrets").stat().st_mode), 0o700)
+                self.assertEqual(
+                    stat.S_IMODE((tmp / "bots" / bot["id"] / "secrets" / "provider").stat().st_mode),
+                    0o444,
+                )
             self.assertEqual(runner.commands[0][0][:4], ["docker", "compose", "-p", "nanobot_bot_abc"])
 
     def test_render_compose_escapes_yaml_sensitive_values(self) -> None:

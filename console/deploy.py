@@ -115,6 +115,7 @@ class DeploymentEngine:
         paths = self.paths(bot["id"])
         for path in (paths.data, paths.workspace, paths.secrets):
             path.mkdir(parents=True, exist_ok=True)
+        paths.secrets.chmod(0o700)
         self._copy_secret(bot["channel_secret_ref"], paths.channel_secret)
         self._copy_secret(bot["provider_secret_ref"], paths.provider_secret)
         paths.compose.write_text(self.render_compose(bot, paths), encoding="utf-8")
@@ -214,7 +215,7 @@ secrets:
     def _copy_secret(self, source: str, dest: Path) -> None:
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source, dest)
-        dest.chmod(0o600)
+        dest.chmod(0o444)
 
     def _compose_path(self, path: Path) -> str:
         return str(path.resolve()).replace("\\", "/")
