@@ -5,23 +5,30 @@ SSH installer for the prototype console.
 Dry-run probe:
 
 ```powershell
-python installer\install.py user@server --dry-run
+py -3 installer\install.py user@server --dry-run
 ```
 
 Apply after reviewing planned host changes:
 
 ```powershell
-python installer\install.py user@server
+py -3 installer\install.py user@server
 ```
 
 Non-interactive apply:
 
 ```powershell
-python installer\install.py user@server --yes
+py -3 installer\install.py user@server --yes
 ```
 
 Notes:
 
+- Windows operator machine needs Python 3 and OpenSSH:
+  - `py -3 --version`
+  - `ssh -V`
+  - `scp`
+- verify SSH manually first: `ssh user@server`;
+- installer uses `BatchMode=yes`, so SSH password prompts are disabled during install;
+- use key-based SSH login or `--identity-file PATH_TO_KEY`;
 - target server should be Ubuntu-compatible Linux with SSH access;
 - default install root is `/opt/nanobot-console`;
 - missing Docker/Compose prerequisites require approval before installation;

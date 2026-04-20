@@ -30,11 +30,13 @@ server/VM -> SSH install -> console UI -> create bot -> Telegram chat -> activit
 ## Installer
 
 ```powershell
-python installer\install.py user@server --dry-run
-python installer\install.py user@server
+py -3 installer\install.py user@server --dry-run
+py -3 installer\install.py user@server
 ```
 
 The installer prepares the server, starts the console service, and prints the UI URL. Telegram/provider credentials are entered in the UI.
+
+Windows prereqs: Python 3 launcher, OpenSSH `ssh`, OpenSSH `scp`, and key-based SSH access to the server.
 
 ## Console API
 

@@ -74,6 +74,16 @@ def run(
     )
 
 
+def print_command_failure(exc: subprocess.CalledProcessError) -> None:
+    print("Command failed:", " ".join(shlex.quote(str(part)) for part in exc.cmd), file=sys.stderr)
+    if exc.stdout:
+        print("stdout:", file=sys.stderr)
+        print(exc.stdout.rstrip(), file=sys.stderr)
+    if exc.stderr:
+        print("stderr:", file=sys.stderr)
+        print(exc.stderr.rstrip(), file=sys.stderr)
+
+
 def run_ssh(
     args: argparse.Namespace,
     remote_cmd: str,
@@ -184,10 +194,25 @@ def main() -> int:
     print(f"Target: {args.target}")
     print(f"Remote root: {args.remote_root}")
     print("Checking SSH connectivity...")
-    run_ssh(args, "printf 'ssh=ok\\n'")
+    try:
+        run_ssh(args, "printf 'ssh=ok\\n'")
+    except subprocess.CalledProcessError as exc:
+        print_command_failure(exc)
+        print()
+        print("SSH check failed.")
+        print("Try this from PowerShell first:")
+        print(f"  ssh -p {args.port} {args.target}")
+        print()
+        print("Installer uses BatchMode=yes, so password prompts are disabled.")
+        print("Use SSH key login or pass --identity-file PATH_TO_KEY.")
+        return 1
 
     print("Probing remote prerequisites...")
-    probe_result = run_bootstrap(args, "probe")
+    try:
+        probe_result = run_bootstrap(args, "probe")
+    except subprocess.CalledProcessError as exc:
+        print_command_failure(exc)
+        return 1
     probe = parse_probe(probe_result.stdout)
     print_probe(probe)
     missing = missing_prereqs(probe)
@@ -209,17 +234,33 @@ def main() -> int:
         return 1
 
     print("Applying remote bootstrap...")
-    apply_result = run_bootstrap(args, "apply")
+    try:
+        apply_result = run_bootstrap(args, "apply")
+    except subprocess.CalledProcessError as exc:
+        print_command_failure(exc)
+        return 1
     print(apply_result.stdout, end="")
 
     print("Uploading bootstrap scaffold...")
-    upload_scaffold(args)
+    try:
+        upload_scaffold(args)
+    except subprocess.CalledProcessError as exc:
+        print_command_failure(exc)
+        return 1
 
     print("Uploading app package...")
-    upload_app(args)
+    try:
+        upload_app(args)
+    except subprocess.CalledProcessError as exc:
+        print_command_failure(exc)
+        return 1
 
     print("Finalizing console service...")
-    finalize_result = run_bootstrap(args, "finalize")
+    try:
+        finalize_result = run_bootstrap(args, "finalize")
+    except subprocess.CalledProcessError as exc:
+        print_command_failure(exc)
+        return 1
     print(finalize_result.stdout, end="")
 
     print("Done.")
