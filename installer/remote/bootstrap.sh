@@ -75,8 +75,23 @@ install_prereqs() {
 
   if has_cmd apt-get; then
     sudo apt-get update
-    sudo apt-get install -y bash ca-certificates curl python3 docker.io docker-compose-plugin
-    return 0
+    sudo apt-get install -y bash ca-certificates curl python3 docker.io
+
+    if docker compose version >/dev/null 2>&1 || has_cmd docker-compose; then
+      return 0
+    fi
+
+    for compose_pkg in docker-compose-plugin docker-compose-v2 docker-compose; do
+      if apt-cache show "$compose_pkg" >/dev/null 2>&1; then
+        sudo apt-get install -y "$compose_pkg" || true
+        if docker compose version >/dev/null 2>&1 || has_cmd docker-compose; then
+          return 0
+        fi
+      fi
+    done
+
+    printf 'error=compose_install_failed\n' >&2
+    return 1
   fi
 
   printf 'error=unsupported_package_manager\n' >&2

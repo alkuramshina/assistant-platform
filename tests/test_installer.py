@@ -12,6 +12,14 @@ class InstallerTest(unittest.TestCase):
     def test_version_does_not_expose_phase_marker(self) -> None:
         self.assertNotIn("phase", install.VERSION.lower())
 
+    def test_bootstrap_has_compose_package_fallbacks(self) -> None:
+        script = install.REMOTE_BOOTSTRAP.read_text(encoding="utf-8")
+
+        self.assertIn("docker-compose-plugin", script)
+        self.assertIn("docker-compose-v2", script)
+        self.assertIn("docker-compose", script)
+        self.assertIn("compose_install_failed", script)
+
     def test_run_sends_input_text_as_bytes(self) -> None:
         captured: dict[str, object] = {}
 
