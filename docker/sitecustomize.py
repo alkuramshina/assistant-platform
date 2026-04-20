@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import time
 import urllib.request
 from typing import Any
@@ -27,7 +28,8 @@ def _post_activity(payload: dict[str, Any]) -> None:
     )
     try:
         urllib.request.urlopen(request, timeout=3).close()
-    except Exception:
+    except Exception as exc:
+        print(f"console activity hook post failed: {exc}", file=sys.stderr, flush=True)
         return
 
 
@@ -37,7 +39,8 @@ def _patch_telegram() -> None:
 
     try:
         from nanobot.channels.telegram import TelegramChannel
-    except Exception:
+    except Exception as exc:
+        print(f"console activity hook disabled: {exc}", file=sys.stderr, flush=True)
         return
 
     original_handle = TelegramChannel._handle_message
@@ -76,6 +79,7 @@ def _patch_telegram() -> None:
 
     TelegramChannel._handle_message = handle_with_capture
     TelegramChannel.send = send_with_activity
+    print("console activity hook enabled", file=sys.stderr, flush=True)
 
 
 _patch_telegram()
