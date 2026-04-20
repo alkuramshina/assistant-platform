@@ -8,6 +8,16 @@ from installer import install
 
 
 class InstallerTest(unittest.TestCase):
+    def test_ssh_base_has_non_interactive_timeout_options(self) -> None:
+        args = argparse.Namespace(port="22", identity_file=None, target="user@example.com")
+        command = install.ssh_base(args)
+
+        self.assertIn("BatchMode=yes", command)
+        self.assertIn("ConnectTimeout=10", command)
+        self.assertIn("ConnectionAttempts=1", command)
+        self.assertIn("NumberOfPasswordPrompts=0", command)
+        self.assertIn("StrictHostKeyChecking=accept-new", command)
+
     def test_package_contains_runtime_app_files(self) -> None:
         package = install.package_app()
         try:

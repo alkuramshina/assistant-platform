@@ -44,7 +44,21 @@ def parse_args() -> argparse.Namespace:
 
 
 def ssh_base(args: argparse.Namespace) -> list[str]:
-    cmd = ["ssh", "-p", str(args.port), "-o", "BatchMode=yes"]
+    cmd = [
+        "ssh",
+        "-p",
+        str(args.port),
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "ConnectTimeout=10",
+        "-o",
+        "ConnectionAttempts=1",
+        "-o",
+        "NumberOfPasswordPrompts=0",
+        "-o",
+        "StrictHostKeyChecking=accept-new",
+    ]
     if args.identity_file:
         cmd.extend(["-i", args.identity_file])
     cmd.append(args.target)
