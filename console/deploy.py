@@ -112,11 +112,11 @@ class DeploymentEngine:
       NANOBOT_HOME: /home/app/.nanobot
       NANOBOT_CONFIG: /home/app/.nanobot/config.json
       NANOBOT_WORKSPACE: /workspace
-      DEFAULT_PROVIDER: openrouter
+      DEFAULT_PROVIDER: vllm
       DEFAULT_MODEL: {model}
       SYSTEM_PROMPT: {prompt}
       VLLM_API_BASE: {base_url}
-      OPENROUTER_API_KEY_FILE: /run/secrets/provider_secret
+      VLLM_API_KEY_FILE: /run/secrets/provider_secret
       TELEGRAM_TOKEN_FILE: /run/secrets/channel_secret
       CHANNEL_TYPE: telegram
       CHANNEL_ALLOW_FROM: {allow}

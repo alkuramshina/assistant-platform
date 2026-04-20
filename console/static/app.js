@@ -92,10 +92,10 @@ function renderSelected() {
   els.details.innerHTML = `
     <dt>ID</dt><dd>${escapeHtml(bot.id)}</dd>
     <dt>Allowed users</dt><dd>${escapeHtml(bot.allowed_user_ids || "not set")}</dd>
-    <dt>Provider</dt><dd>${escapeHtml(bot.provider_base_url || "not set")}</dd>
+    <dt>Provider URL</dt><dd>${escapeHtml(bot.provider_base_url || "not set")}</dd>
     <dt>Model</dt><dd>${escapeHtml(bot.provider_model || "not set")}</dd>
-    <dt>Telegram token secret</dt><dd>${escapeHtml(bot.channel_secret_ref || "not set")}</dd>
-    <dt>Provider key secret</dt><dd>${escapeHtml(bot.provider_secret_ref || "not set")}</dd>
+    <dt>Telegram token</dt><dd>${bot.channel_secret_ref ? "stored server-side" : "not set"}</dd>
+    <dt>Provider key</dt><dd>${bot.provider_secret_ref ? "stored server-side" : "not set"}</dd>
   `;
 }
 

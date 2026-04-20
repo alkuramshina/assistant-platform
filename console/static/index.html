@@ -17,7 +17,7 @@
       </header>
 
       <p class="notice">
-        Bind this console locally or behind your own access control. Enter server-side secret file references, not raw Telegram or provider keys.
+        Bind this console locally or behind your own access control. Tokens are written to server-side secret files and are not shown again.
       </p>
 
       <section class="grid">
@@ -33,27 +33,19 @@
           </label>
           <label>
             Telegram token
-            <input name="channel_secret_value" type="password" placeholder="Written to a server-side secret file">
-          </label>
-          <label>
-            Existing Telegram token secret file
-            <input name="channel_secret_ref" placeholder="/opt/nanobot-console/secrets/bot-token">
+            <input name="channel_secret_value" type="password" required placeholder="BotFather token">
           </label>
           <label>
             Provider API key
-            <input name="provider_secret_value" type="password" placeholder="Written to a server-side secret file">
+            <input name="provider_secret_value" type="password" required placeholder="Provider API key">
           </label>
           <label>
-            Existing provider API key secret file
-            <input name="provider_secret_ref" placeholder="/opt/nanobot-console/secrets/provider-key">
-          </label>
-          <label>
-            Provider base URL
-            <input name="provider_base_url" placeholder="https://openrouter.ai/api/v1">
+            Provider API base URL
+            <input name="provider_base_url" required placeholder="https://openrouter.ai/api/v1">
           </label>
           <label>
             Model
-            <input name="provider_model" placeholder="openrouter/free-model">
+            <input name="provider_model" required placeholder="openrouter/free-model">
           </label>
           <label>
             System prompt
@@ -75,11 +67,11 @@
             <h2 id="selected-name">Select a bot</h2>
             <span id="selected-status">idle</span>
           </div>
-          <dl id="bot-details"></dl>
-          <div class="actions">
+          <div class="bot-actions">
             <button id="start" type="button" disabled>Start</button>
             <button id="stop" type="button" disabled>Stop</button>
           </div>
+          <dl id="bot-details"></dl>
           <p id="message" class="message" role="status"></p>
         </section>
 

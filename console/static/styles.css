@@ -43,7 +43,8 @@ button:disabled {
 
 .topbar,
 .section-head,
-.actions {
+.actions,
+.bot-actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -154,7 +155,7 @@ dl {
   display: grid;
   grid-template-columns: 145px minmax(0, 1fr);
   gap: 8px 12px;
-  margin: 0 0 16px;
+  margin: 16px 0 0;
 }
 
 dt {
@@ -212,6 +213,7 @@ dd {
   .topbar,
   .section-head,
   .actions,
+  .bot-actions,
   .log-item div {
     align-items: stretch;
     flex-direction: column;
