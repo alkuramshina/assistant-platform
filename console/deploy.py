@@ -15,9 +15,15 @@ class Runner(Protocol):
     def run(self, command: list[str], *, cwd: Path | None = None) -> None:
         ...
 
+    def capture(self, command: list[str], *, cwd: Path | None = None) -> str:
+        ...
+
 
 class CommandRunner:
     def run(self, command: list[str], *, cwd: Path | None = None) -> None:
+        self.capture(command, cwd=cwd)
+
+    def capture(self, command: list[str], *, cwd: Path | None = None) -> str:
         result = subprocess.run(
             command,
             cwd=cwd,
@@ -37,6 +43,7 @@ class CommandRunner:
                 if part
             )
             raise DeploymentError(details)
+        return result.stdout
 
 
 class DeploymentError(ValueError):
@@ -80,6 +87,17 @@ class DeploymentEngine:
             cwd=paths.root,
         )
         return {"status": "stopped", "project": project, "compose": str(paths.compose)}
+
+    def runtime_logs(self, bot_id: str, tail: int = 200) -> str:
+        paths = self.paths(bot_id)
+        if not paths.compose.is_file():
+            raise DeploymentError(f"Compose file not found for bot: {bot_id}")
+        project = self.project_name(bot_id)
+        safe_tail = max(20, min(int(tail), 1000))
+        return self.runner.capture(
+            ["docker", "compose", "-p", project, "-f", str(paths.compose), "logs", "--tail", str(safe_tail)],
+            cwd=paths.root,
+        )
 
     def deploy(self, bot: dict[str, Any]) -> BotPaths:
         self.validate(bot)

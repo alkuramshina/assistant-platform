@@ -6,6 +6,7 @@ const state = {
 const endpoints = {
   bots: "/api/bots",
   logs: (id) => `/api/bots/${id}/logs`,
+  runtimeLogs: (id) => `/api/bots/${id}/runtime-logs?tail=200`,
   start: (id) => `/api/bots/${id}/start`,
   stop: (id) => `/api/bots/${id}/stop`,
 };
@@ -53,6 +54,8 @@ const els = {
   providerBaseUrl: document.querySelector("#provider-base-url"),
   reloadLogs: document.querySelector("#reload-logs"),
   logs: document.querySelector("#logs"),
+  reloadRuntimeLogs: document.querySelector("#reload-runtime-logs"),
+  runtimeLogs: document.querySelector("#runtime-logs"),
 };
 
 async function api(path, options = {}) {
@@ -127,7 +130,9 @@ function renderSelected() {
     els.start.disabled = true;
     els.stop.disabled = true;
     els.reloadLogs.disabled = true;
+    els.reloadRuntimeLogs.disabled = true;
     els.logs.innerHTML = '<p class="empty">Choose a bot to view Activity.</p>';
+    els.runtimeLogs.textContent = "Choose a bot to view runtime logs.";
     return;
   }
 
@@ -136,6 +141,7 @@ function renderSelected() {
   els.start.disabled = bot.status === "running";
   els.stop.disabled = bot.status !== "running";
   els.reloadLogs.disabled = false;
+  els.reloadRuntimeLogs.disabled = false;
   els.details.innerHTML = `
     <dt>ID</dt><dd>${escapeHtml(bot.id)}</dd>
     <dt>Allowed users</dt><dd>${escapeHtml(bot.allowed_user_ids || "not set")}</dd>
@@ -180,6 +186,9 @@ async function selectBot(id) {
   state.selectedId = id;
   renderBots();
   await loadLogs();
+  await loadRuntimeLogs().catch((error) => {
+    els.runtimeLogs.textContent = error.message;
+  });
 }
 
 async function loadLogs() {
@@ -188,6 +197,15 @@ async function loadLogs() {
   }
   const payload = await api(endpoints.logs(state.selectedId));
   renderLogs(payload.logs || []);
+}
+
+async function loadRuntimeLogs() {
+  if (!state.selectedId) {
+    return;
+  }
+  els.runtimeLogs.textContent = "Loading runtime logs...";
+  const payload = await api(endpoints.runtimeLogs(state.selectedId));
+  els.runtimeLogs.textContent = payload.logs || "No runtime logs yet.";
 }
 
 async function createBot(event) {
@@ -244,6 +262,12 @@ els.refresh.addEventListener("click", () => loadBots().catch((error) => setMessa
 els.start.addEventListener("click", () => runAction("start"));
 els.stop.addEventListener("click", () => runAction("stop"));
 els.reloadLogs.addEventListener("click", () => loadLogs().catch((error) => setMessage(error.message, "error")));
+els.reloadRuntimeLogs.addEventListener("click", () =>
+  loadRuntimeLogs().catch((error) => {
+    els.runtimeLogs.textContent = error.message;
+    setMessage(error.message, "error");
+  }),
+);
 
 renderModelPresets();
 loadBots().catch((error) => setMessage(error.message, "error"));

@@ -8,7 +8,7 @@ import os
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import unquote, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 from . import db
 from .deploy import DeploymentEngine, DeploymentError, Runner
@@ -76,6 +76,18 @@ class ConsoleHandler(BaseHTTPRequestHandler):
                 logs = db.list_logs(conn, parts[2])
                 self._json_or_404("logs", {"logs": logs} if logs is not None else None)
                 return
+            if len(parts) == 4 and parts[:2] == ["api", "bots"] and parts[3] == "runtime-logs":
+                bot = db.get_bot(conn, parts[2])
+                if bot is None:
+                    self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
+                    return
+                try:
+                    text = self._deployment().runtime_logs(parts[2], self._query_int("tail", 200))
+                except DeploymentError as exc:
+                    self._json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                    return
+                self._json({"logs": text})
+                return
 
         self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
 
@@ -115,6 +127,15 @@ class ConsoleHandler(BaseHTTPRequestHandler):
     def _path_parts(self) -> list[str]:
         path = urlparse(self.path).path
         return [part for part in path.split("/") if part]
+
+    def _query_int(self, name: str, default: int) -> int:
+        values = parse_qs(urlparse(self.path).query).get(name)
+        if not values:
+            return default
+        try:
+            return int(values[0])
+        except ValueError:
+            return default
 
     def _read_json(self) -> dict[str, object]:
         length = int(self.headers.get("Content-Length", "0"))

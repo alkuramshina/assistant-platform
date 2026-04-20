@@ -44,6 +44,7 @@ button:disabled {
 
 .topbar,
 .section-head,
+.runtime-head,
 .actions,
 .bot-actions {
   display: flex;
@@ -222,6 +223,28 @@ dd {
   overflow-wrap: anywhere;
 }
 
+.runtime-head {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid #d8ded3;
+}
+
+.runtime-log {
+  min-height: 220px;
+  max-height: 420px;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid #d8ded3;
+  border-radius: 6px;
+  background: #171914;
+  color: #f6f7f4;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
 .empty {
   margin-bottom: 0;
   color: #4f554b;
@@ -234,6 +257,7 @@ dd {
 
   .topbar,
   .section-head,
+  .runtime-head,
   .actions,
   .bot-actions,
   .log-item div {

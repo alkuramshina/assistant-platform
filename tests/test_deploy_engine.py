@@ -21,9 +21,14 @@ def workspace_temp_dir():
 class FakeRunner:
     def __init__(self) -> None:
         self.commands: list[tuple[list[str], Path | None]] = []
+        self.captured = "logs\n"
 
     def run(self, command: list[str], *, cwd: Path | None = None) -> None:
         self.commands.append((command, cwd))
+
+    def capture(self, command: list[str], *, cwd: Path | None = None) -> str:
+        self.commands.append((command, cwd))
+        return self.captured
 
 
 def bot_record(tmp: Path, bot_id: str = "bot-abc") -> dict:
@@ -113,6 +118,21 @@ class DeploymentEngineTest(unittest.TestCase):
 
             self.assertNotEqual(first.root, second.root)
             self.assertNotEqual(engine.project_name("bot-one"), engine.project_name("bot-two"))
+
+    def test_runtime_logs_reads_compose_logs_for_bot(self) -> None:
+        with workspace_temp_dir() as tmp:
+            runner = FakeRunner()
+            engine = DeploymentEngine(tmp / "bots", runner)
+            bot = bot_record(tmp)
+            engine.deploy(bot)
+
+            logs = engine.runtime_logs(bot["id"])
+
+            self.assertEqual(logs, "logs\n")
+            command, cwd = runner.commands[-1]
+            self.assertEqual(command[:4], ["docker", "compose", "-p", "nanobot_bot_abc"])
+            self.assertIn("logs", command)
+            self.assertEqual(cwd, tmp / "bots" / bot["id"])
 
     def test_missing_allowlist_fails_before_runner(self) -> None:
         with workspace_temp_dir() as tmp:
