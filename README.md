@@ -64,7 +64,13 @@ Useful flags:
 | `--remote-root PATH` | Install root on the target server. |
 | `--console-port PORT` | HTTP port for the console UI. |
 
-Preflight checks:
+Preflight checks are manual checks run by the operator from the machine where the deployer will be launched. Run them before the first deploy if the server is new, or after the deployer reports an SSH/sudo/connectivity error.
+
+They answer three questions:
+
+- does the operator machine have Python, SSH, and SCP;
+- can the operator log in to the server over SSH without an interactive SSH password prompt;
+- can the remote user run `sudo`.
 
 ```powershell
 py -3 --version
@@ -74,6 +80,14 @@ ssh <user>@<vm-ip>
 ssh -o BatchMode=yes <user>@<vm-ip> "printf 'ssh=ok\n'"
 ssh <user>@<vm-ip> "sudo true"
 ```
+
+Expected operator actions:
+
+- if `py`, `ssh`, or `scp` is missing, install/fix it on the operator machine;
+- if normal `ssh <user>@<vm-ip>` fails, fix VM networking, IP address, username, SSH server, or firewall;
+- if `BatchMode=yes` fails, set up SSH key login or pass `--identity-file`;
+- if `sudo true` asks for a password, that is okay for interactive deploys: the deployer will ask for the Linux sudo password for this session and will not store it;
+- if using `--yes`, `sudo true` must work without a password because non-interactive mode cannot prompt.
 
 If `BatchMode=yes` fails, configure SSH key login:
 
