@@ -61,6 +61,7 @@ const els = {
 async function api(path, options = {}) {
   const response = await fetch(path, {
     headers: { "Content-Type": "application/json" },
+    cache: "no-store",
     ...options,
   });
   const payload = await response.json().catch(() => ({}));
@@ -196,7 +197,7 @@ async function loadLogs() {
   if (!state.selectedId) {
     return;
   }
-  const payload = await api(endpoints.logs(state.selectedId));
+  const payload = await api(withCacheBust(endpoints.logs(state.selectedId)));
   renderLogs(payload.logs || []);
 }
 
@@ -205,7 +206,7 @@ async function loadRuntimeLogs() {
     return;
   }
   els.runtimeLogs.textContent = "Loading runtime logs...";
-  const payload = await api(endpoints.runtimeLogs(state.selectedId));
+  const payload = await api(withCacheBust(endpoints.runtimeLogs(state.selectedId)));
   els.runtimeLogs.textContent = payload.logs || "No runtime logs yet.";
 }
 
@@ -257,9 +258,16 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+function withCacheBust(path) {
+  const separator = path.includes("?") ? "&" : "?";
+  return `${path}${separator}_=${Date.now()}`;
+}
+
 els.form.addEventListener("submit", createBot);
 els.model.addEventListener("change", syncProviderBaseUrl);
-els.refresh.addEventListener("click", () => loadBots().catch((error) => setMessage(error.message, "error")));
+els.refresh.addEventListener("click", () =>
+  refreshSelected().catch((error) => setMessage(error.message, "error")),
+);
 els.start.addEventListener("click", () => runAction("start"));
 els.stop.addEventListener("click", () => runAction("stop"));
 els.reloadLogs.addEventListener("click", () => loadLogs().catch((error) => setMessage(error.message, "error")));
@@ -272,3 +280,12 @@ els.reloadRuntimeLogs.addEventListener("click", () =>
 
 renderModelPresets();
 loadBots().catch((error) => setMessage(error.message, "error"));
+
+async function refreshSelected() {
+  await loadBots();
+  if (!state.selectedId) {
+    return;
+  }
+  await loadLogs();
+  await loadRuntimeLogs();
+}
