@@ -140,6 +140,7 @@ class DeployerTest(unittest.TestCase):
             identity_file="C:/Users/example/.ssh/id_ed25519",
             remote_root="/opt/nanobot-console",
             console_port="8787",
+            console_domain="console.example.com",
             saved_host_approval=False,
         )
 
@@ -149,6 +150,7 @@ class DeployerTest(unittest.TestCase):
 
         self.assertEqual(loaded["target"], "user@example.com")
         self.assertEqual(loaded["port"], "2222")
+        self.assertEqual(loaded["console_domain"], "console.example.com")
         self.assertEqual(loaded["approved_host_changes"], "true")
         self.assertNotIn("password", json.dumps(raw_json).lower())
 
@@ -159,6 +161,7 @@ class DeployerTest(unittest.TestCase):
             identity_file=None,
             remote_root=None,
             console_port=None,
+            console_domain=None,
         )
 
         deploy.apply_config(
@@ -169,6 +172,7 @@ class DeployerTest(unittest.TestCase):
                 "identity_file": "key.pem",
                 "remote_root": "/srv/nanobot",
                 "console_port": "9876",
+                "console_domain": "https://console.example.com/",
                 "approved_host_changes": "true",
             },
         )
@@ -178,7 +182,18 @@ class DeployerTest(unittest.TestCase):
         self.assertEqual(args.identity_file, "key.pem")
         self.assertEqual(args.remote_root, "/srv/nanobot")
         self.assertEqual(args.console_port, "9876")
+        self.assertEqual(args.console_domain, "console.example.com")
         self.assertTrue(args.saved_host_approval)
+
+    def test_console_url_prefers_https_domain(self) -> None:
+        args = argparse.Namespace(target="user@192.0.2.10", console_port="8787", console_domain="console.example.com")
+
+        self.assertEqual(deploy.console_url(args), "https://console.example.com/")
+
+    def test_console_url_falls_back_to_http_host_port(self) -> None:
+        args = argparse.Namespace(target="user@192.0.2.10", console_port="8787", console_domain="")
+
+        self.assertEqual(deploy.console_url(args), "http://192.0.2.10:8787/")
 
     def test_run_sudo_shell_passes_password_via_stdin(self) -> None:
         args = argparse.Namespace(port="22", identity_file=None, target="user@example.com")
@@ -230,7 +245,7 @@ class DeployerTest(unittest.TestCase):
         self.assertEqual(attempts, ["wrong-pass", "right-pass"])
 
     def test_bootstrap_with_sudo_preserves_script_exit_status(self) -> None:
-        args = argparse.Namespace(remote_root="/opt/nanobot-console", console_port="8787")
+        args = argparse.Namespace(remote_root="/opt/nanobot-console", console_port="8787", console_domain="")
         captured: dict[str, object] = {}
 
         def fake_upload_bootstrap_tmp(args):
@@ -288,7 +303,7 @@ class DeployerTest(unittest.TestCase):
         self.assertEqual(captured["sudo_password"], "secret-pass")
 
     def test_bootstrap_runs_with_bash(self) -> None:
-        args = argparse.Namespace(remote_root="/opt/test root", console_port="8787")
+        args = argparse.Namespace(remote_root="/opt/test root", console_port="8787", console_domain="console.example.com")
         captured: dict[str, str | None] = {}
 
         def fake_run_ssh(args, command: str, *, input_text: str | None = None):
@@ -305,8 +320,17 @@ class DeployerTest(unittest.TestCase):
 
         self.assertIn("bash -s -- probe", str(captured["command"]))
         self.assertIn("/opt/test root", str(captured["command"]))
+        self.assertIn("console.example.com", str(captured["command"]))
         self.assertIn("probe()", str(captured["input_text"]))
         self.assertNotIn("\r\n", str(captured["input_text"]))
+
+    def test_bootstrap_supports_https_reverse_proxy_or_http_warning(self) -> None:
+        script = deploy.REMOTE_BOOTSTRAP.read_text(encoding="utf-8")
+
+        self.assertIn("CONSOLE_DOMAIN", script)
+        self.assertIn("caddy", script)
+        self.assertIn("reverse_proxy 127.0.0.1:$CONSOLE_PORT", script)
+        self.assertIn("warning=http_only_console", script)
 
 
 if __name__ == "__main__":

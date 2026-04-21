@@ -34,4 +34,4 @@ Source of truth: `README.md`.
 
 ## Current
 
-Next: `/gsd-execute-phase 10`.
+Next: run Phase 10 human UAT on the VM.

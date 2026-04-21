@@ -45,6 +45,7 @@ Common commands:
 py -3 deployer\deploy.py                         # install/update
 py -3 deployer\deploy.py --dry-run               # probe only
 py -3 deployer\deploy.py <user>@<vm-ip>          # explicit target
+py -3 deployer\deploy.py --domain console.example.com
 py -3 deployer\deploy.py --reset-config          # ignore saved settings
 py -3 deployer\deploy.py --no-save-config        # do not write .deployer.json
 py -3 deployer\deploy.py <user>@<vm-ip> --yes    # non-interactive, requires key login and non-interactive sudo
@@ -63,6 +64,7 @@ Useful flags:
 | `--identity-file PATH` | SSH private key path, if you do not want to use the default key from `~/.ssh`. |
 | `--remote-root PATH` | Install root on the target server. |
 | `--console-port PORT` | HTTP port for the console UI. |
+| `--domain DOMAIN` | Publish the console as `https://DOMAIN/` through a reverse proxy. |
 
 ### Preflight Checks
 
@@ -120,6 +122,12 @@ After SSH works, the deployer checks the server for:
 If Docker or Compose is missing and the operator approves host changes, the deployer attempts to install or repair them. It also creates or updates the console under the remote install root.
 
 The deployer does not install Python, SSH, or SCP on the operator machine, and it does not fix unreachable VM networking or missing SSH access.
+
+## Console Exposure
+
+Without `--domain`, the console is served as plain HTTP on `http://<server>:<console-port>/`. Use that only for local/manual testing on a trusted network.
+
+With `--domain console.example.com`, the deployer binds the console backend to `127.0.0.1`, attempts to install/configure Caddy, and publishes `https://console.example.com/`. The operator must point DNS to the server and allow inbound `80/tcp` and `443/tcp`.
 
 ## Create A Bot
 
@@ -188,11 +196,25 @@ sudo /opt/nanobot-console/consolectl bot-logs <bot-id> 200
 sudo /opt/nanobot-console/consolectl url
 ```
 
+## Two-Bot Isolation Check
+
+Manual smoke test for a server that already has the console:
+
+1. Create two bots with different Telegram tokens and allowlisted users.
+2. Start both bots from the UI.
+3. Send a Telegram message to each bot.
+4. Confirm each bot has its own Activity and Runtime logs.
+5. Stop one bot.
+6. Confirm the stopped bot no longer responds and the other bot still responds.
+
+Each bot should keep a separate directory under `/opt/nanobot-console/bots/<bot-id>/` and a separate Compose project named from that bot ID.
+
 ## Security
 
 - Do not commit real secrets.
 - Rotate any token that appears in chat, screenshots, terminal output, or logs.
 - Keep the console private. Plain HTTP is for local/manual testing only; use HTTPS, VPN, SSH tunnel, firewall, or another access-control layer for non-local use.
+- Use `--domain DOMAIN` when the console should be reachable as HTTPS on a real host.
 - Telegram allowlist is required for bot start.
 - Bot containers do not mount `docker.sock`.
 - Bot containers run as a non-root app user.

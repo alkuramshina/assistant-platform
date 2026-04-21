@@ -4,6 +4,7 @@ set -eu
 MODE="${1:-probe}"
 REMOTE_ROOT="${2:-/opt/nanobot-console}"
 CONSOLE_PORT="${3:-8787}"
+CONSOLE_DOMAIN="${4:-}"
 SERVICE_NAME="nanobot-console"
 
 has_cmd() {
@@ -98,6 +99,50 @@ install_prereqs() {
   return 1
 }
 
+console_bind_host() {
+  if [ -n "$CONSOLE_DOMAIN" ]; then
+    printf '127.0.0.1'
+  else
+    printf '0.0.0.0'
+  fi
+}
+
+install_caddy_if_needed() {
+  if has_cmd caddy; then
+    return 0
+  fi
+  if ! has_cmd apt-get; then
+    printf 'error=caddy_install_unsupported_package_manager\n' >&2
+    return 1
+  fi
+  sudo apt-get update
+  if ! apt-cache show caddy >/dev/null 2>&1; then
+    printf 'error=caddy_package_missing\n' >&2
+    return 1
+  fi
+  sudo apt-get install -y caddy
+}
+
+configure_https_proxy() {
+  if [ -z "$CONSOLE_DOMAIN" ]; then
+    printf 'warning=http_only_console\n'
+    return 0
+  fi
+
+  install_caddy_if_needed
+  printf 'https_proxy=configure\n'
+  sudo tee /etc/caddy/Caddyfile >/dev/null <<EOF
+$CONSOLE_DOMAIN {
+  reverse_proxy 127.0.0.1:$CONSOLE_PORT
+}
+EOF
+  if has_cmd systemctl; then
+    sudo systemctl enable caddy
+    sudo systemctl reload caddy || sudo systemctl restart caddy
+  fi
+  printf 'https_proxy=caddy\n'
+}
+
 apply() {
   require_sudo
   install_prereqs
@@ -134,6 +179,7 @@ finalize() {
   fi
 
   if has_cmd systemctl; then
+    CONSOLE_BIND_HOST="$(console_bind_host)"
     printf 'service_unit=write\n'
     sudo tee "/etc/systemd/system/$SERVICE_NAME.service" >/dev/null <<EOF
 [Unit]
@@ -144,7 +190,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=$REMOTE_ROOT/app
-ExecStart=/usr/bin/python3 -m console --db $REMOTE_ROOT/console.db --bot-root $REMOTE_ROOT/bots --secret-root $REMOTE_ROOT/secrets --host 0.0.0.0 --port $CONSOLE_PORT
+ExecStart=/usr/bin/python3 -m console --db $REMOTE_ROOT/console.db --bot-root $REMOTE_ROOT/bots --secret-root $REMOTE_ROOT/secrets --host $CONSOLE_BIND_HOST --port $CONSOLE_PORT
 Restart=unless-stopped
 RestartSec=5
 
@@ -163,7 +209,13 @@ EOF
     printf 'service=systemd_missing\n'
   fi
 
-  printf 'console_url=http://SERVER:%s/\n' "$CONSOLE_PORT"
+  configure_https_proxy
+  if [ -n "$CONSOLE_DOMAIN" ]; then
+    printf 'console_url=https://%s/\n' "$CONSOLE_DOMAIN"
+    printf 'console_backend=http://127.0.0.1:%s/\n' "$CONSOLE_PORT"
+  else
+    printf 'console_url=http://SERVER:%s/\n' "$CONSOLE_PORT"
+  fi
   printf 'finalize=ok\n'
 }
 
@@ -178,7 +230,7 @@ case "$MODE" in
     finalize
     ;;
   *)
-    printf 'usage: %s probe|apply|finalize [/opt/nanobot-console] [8787]\n' "$0" >&2
+    printf 'usage: %s probe|apply|finalize [/opt/nanobot-console] [8787] [console.example.com]\n' "$0" >&2
     exit 2
     ;;
 esac

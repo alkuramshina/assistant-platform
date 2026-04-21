@@ -2,7 +2,7 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: "Phase 10 planned"
+status: "Phase 10 automated verification passed; human UAT pending"
 last_updated: "2026-04-21T00:00:00.000Z"
 progress:
   total_phases: 7
@@ -16,7 +16,7 @@ progress:
 
 Current focus: Phase 10 - Multi-Bot Isolation and Hardening.
 
-Next command: `/gsd-execute-phase 10`.
+Next command: run `.planning/phases/10-multi-bot-isolation-and-hardening/10-HUMAN-UAT.md`.
 
 Source of truth: `README.md`.
 
@@ -29,4 +29,5 @@ Notes:
 - Local Ubuntu VM smoke reached Telegram replies and UI Activity request/response logging.
 - Phase 9 human UAT passed on 2026-04-21.
 - Phase 10 plan created: `.planning/phases/10-multi-bot-isolation-and-hardening/10-01-multi-bot-isolation-and-hardening-PLAN.md`.
+- Phase 10 automated checks passed; human VM UAT remains.
 - If Telegram API is blocked from the VM, use the bot Proxy URL with the local Xray proxy.

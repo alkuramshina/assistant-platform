@@ -20,7 +20,15 @@ DEFAULT_CONFIG_PATH = ROOT / ".deployer.json"
 REMOTE_BOOTSTRAP = ROOT / "deployer" / "remote" / "bootstrap.sh"
 REMOTE_CONTROL = ROOT / "deployer" / "remote" / "consolectl.sh"
 VERSION = "nanobot-console"
-CONFIG_KEYS = ("target", "port", "identity_file", "remote_root", "console_port", "approved_host_changes")
+CONFIG_KEYS = (
+    "target",
+    "port",
+    "identity_file",
+    "remote_root",
+    "console_port",
+    "console_domain",
+    "approved_host_changes",
+)
 PACKAGE_PATHS = [
     "console",
     "docker",
@@ -42,6 +50,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--identity-file", help="SSH private key path")
     parser.add_argument("--remote-root", help=f"Remote deploy root, default: {DEFAULT_REMOTE_ROOT}")
     parser.add_argument("--console-port", help="Console port, default: 8787")
+    parser.add_argument("--domain", dest="console_domain", help="Public HTTPS domain for the console")
     parser.add_argument("--config", default=str(DEFAULT_CONFIG_PATH), help="Local deployer config path")
     parser.add_argument("--no-save-config", action="store_true", help="Do not write local deployer config")
     parser.add_argument("--reset-config", action="store_true", help="Ignore saved deployer config for this run")
@@ -71,6 +80,7 @@ def apply_config(args: argparse.Namespace, config: dict[str, str]) -> None:
     args.identity_file = args.identity_file or config.get("identity_file") or None
     args.remote_root = args.remote_root or config.get("remote_root") or DEFAULT_REMOTE_ROOT
     args.console_port = args.console_port or config.get("console_port") or "8787"
+    args.console_domain = clean_domain(args.console_domain or config.get("console_domain") or "")
     args.saved_host_approval = config.get("approved_host_changes") == "true"
 
 
@@ -86,6 +96,8 @@ def save_config(args: argparse.Namespace, *, approved_host_changes: bool | None 
     }
     if args.identity_file:
         data["identity_file"] = args.identity_file
+    if args.console_domain:
+        data["console_domain"] = clean_domain(args.console_domain)
     approval = approved_host_changes if approved_host_changes is not None else getattr(args, "saved_host_approval", False)
     if approval:
         data["approved_host_changes"] = "true"
@@ -185,6 +197,27 @@ def prompt_value(label: str, default: str = "") -> str:
     return value or default
 
 
+def clean_domain(value: str) -> str:
+    value = value.strip()
+    if value.startswith("https://"):
+        value = value.removeprefix("https://")
+    if value.startswith("http://"):
+        value = value.removeprefix("http://")
+    return value.strip().strip("/")
+
+
+def console_url(args: argparse.Namespace) -> str:
+    domain = clean_domain(getattr(args, "console_domain", "") or "")
+    if domain:
+        return f"https://{domain}/"
+    return f"http://{args.target.split('@')[-1]}:{args.console_port}/"
+
+
+def print_http_warning() -> None:
+    print("Warning: console will be exposed over plain HTTP.")
+    print("Use this only on a trusted network, or rerun with --domain DOMAIN for HTTPS reverse proxy setup.")
+
+
 def configure_interactive(args: argparse.Namespace) -> None:
     if args.target:
         return
@@ -200,6 +233,9 @@ def configure_interactive(args: argparse.Namespace) -> None:
         args.remote_root,
     )
     args.console_port = prompt_value("Console port", str(args.console_port))
+    args.console_domain = clean_domain(
+        prompt_value("Console HTTPS domain, or press Enter for HTTP-only access", args.console_domain or "")
+    )
 
 
 def wait_for_retry(args: argparse.Namespace, reason: str) -> bool:
@@ -279,7 +315,12 @@ def run_bootstrap(args: argparse.Namespace, mode: str) -> subprocess.CompletedPr
     script = REMOTE_BOOTSTRAP.read_text(encoding="utf-8").replace("\r\n", "\n")
     remote_root = shlex.quote(args.remote_root)
     console_port = shlex.quote(str(args.console_port))
-    return run_ssh(args, f"bash -s -- {shlex.quote(mode)} {remote_root} {console_port}", input_text=script)
+    console_domain = shlex.quote(clean_domain(getattr(args, "console_domain", "") or ""))
+    return run_ssh(
+        args,
+        f"bash -s -- {shlex.quote(mode)} {remote_root} {console_port} {console_domain}",
+        input_text=script,
+    )
 
 
 def upload_bootstrap_tmp(args: argparse.Namespace) -> str:
@@ -315,11 +356,12 @@ def run_bootstrap_with_sudo_password(
     remote_tmp = upload_bootstrap_tmp(args)
     remote_root = shlex.quote(args.remote_root)
     console_port = shlex.quote(str(args.console_port))
+    console_domain = shlex.quote(clean_domain(getattr(args, "console_domain", "") or ""))
     remote_tmp_q = shlex.quote(remote_tmp)
     return run_sudo_shell(
         args,
         (
-            f"bash {remote_tmp_q} {shlex.quote(mode)} {remote_root} {console_port}; "
+            f"bash {remote_tmp_q} {shlex.quote(mode)} {remote_root} {console_port} {console_domain}; "
             "status=$?; "
             f"rm -f {remote_tmp_q}; "
             "exit $status"
@@ -332,9 +374,10 @@ def run_bootstrap_stream(args: argparse.Namespace, mode: str) -> subprocess.Comp
     script = REMOTE_BOOTSTRAP.read_text(encoding="utf-8").replace("\r\n", "\n")
     remote_root = shlex.quote(args.remote_root)
     console_port = shlex.quote(str(args.console_port))
+    console_domain = shlex.quote(clean_domain(getattr(args, "console_domain", "") or ""))
     return run_ssh_stream(
         args,
-        f"bash -s -- {shlex.quote(mode)} {remote_root} {console_port}",
+        f"bash -s -- {shlex.quote(mode)} {remote_root} {console_port} {console_domain}",
         input_text=script,
     )
 
@@ -347,11 +390,12 @@ def run_bootstrap_with_sudo_password_stream(
     remote_tmp = upload_bootstrap_tmp(args)
     remote_root = shlex.quote(args.remote_root)
     console_port = shlex.quote(str(args.console_port))
+    console_domain = shlex.quote(clean_domain(getattr(args, "console_domain", "") or ""))
     remote_tmp_q = shlex.quote(remote_tmp)
     return run_sudo_shell_stream(
         args,
         (
-            f"bash {remote_tmp_q} {shlex.quote(mode)} {remote_root} {console_port}; "
+            f"bash {remote_tmp_q} {shlex.quote(mode)} {remote_root} {console_port} {console_domain}; "
             "status=$?; "
             f"rm -f {remote_tmp_q}; "
             "exit $status"
@@ -399,8 +443,10 @@ def confirm(args: argparse.Namespace, missing: list[str]) -> bool:
     print("Planned host changes:")
     print(f"  - create/update {args.remote_root}")
     print("  - upload deployer-controlled scaffold files")
+    if args.console_domain:
+        print(f"  - configure HTTPS reverse proxy for {args.console_domain}")
     if missing:
-            print(f"  - attempt prerequisite setup/repair: {', '.join(missing)}")
+        print(f"  - attempt prerequisite setup/repair: {', '.join(missing)}")
     answer = input("Approve these host changes? Type 'yes' to continue: ").strip().lower()
     return answer == "yes"
 
@@ -540,7 +586,12 @@ def main() -> int:
         print("  - upload app package")
         print("  - deploy/update console systemd service")
         print("  - build/refresh nanobot-enterprise-pilot:dev image")
-        print(f"  - print UI URL on port {args.console_port}")
+        if args.console_domain:
+            print(f"  - configure HTTPS reverse proxy for {args.console_domain}")
+            print(f"  - print UI URL: {console_url(args)}")
+        else:
+            print(f"  - print UI URL on port {args.console_port}")
+            print_http_warning()
         if missing:
             print(f"  - prerequisite attention needed: {', '.join(missing)}")
         return 0
@@ -587,7 +638,9 @@ def main() -> int:
 
     print("Done.")
     print(f"Console root: {args.remote_root}")
-    print(f"Console URL: http://{args.target.split('@')[-1]}:{args.console_port}/")
+    if not args.console_domain:
+        print_http_warning()
+    print(f"Console URL: {console_url(args)}")
     print(f"Control command: sudo {args.remote_root}/consolectl status")
     return 0
 

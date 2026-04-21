@@ -137,7 +137,38 @@ class DeploymentEngineTest(unittest.TestCase):
             second = engine.deploy(bot_record(tmp, "bot-two"))
 
             self.assertNotEqual(first.root, second.root)
+            self.assertNotEqual(first.data, second.data)
+            self.assertNotEqual(first.workspace, second.workspace)
+            self.assertNotEqual(first.secrets, second.secrets)
+            self.assertNotEqual(first.compose, second.compose)
+            self.assertNotEqual(first.channel_secret, second.channel_secret)
+            self.assertNotEqual(first.provider_secret, second.provider_secret)
+            self.assertTrue(str(first.root).endswith("bot-one"))
+            self.assertTrue(str(second.root).endswith("bot-two"))
             self.assertNotEqual(engine.project_name("bot-one"), engine.project_name("bot-two"))
+            self.assertEqual(engine.project_name("bot-one"), "nanobot_bot_one")
+            self.assertEqual(engine.project_name("bot-two"), "nanobot_bot_two")
+
+    def test_stopping_one_bot_targets_only_that_project(self) -> None:
+        with workspace_temp_dir() as tmp:
+            runner = FakeRunner()
+            engine = DeploymentEngine(tmp / "bots", runner)
+            first_bot = bot_record(tmp, "bot-one")
+            second_bot = bot_record(tmp, "bot-two")
+            first = engine.deploy(first_bot)
+            second = engine.deploy(second_bot)
+
+            runner.commands.clear()
+            engine.stop(first_bot)
+
+            self.assertEqual(len(runner.commands), 1)
+            command, cwd = runner.commands[0]
+            self.assertEqual(command[:4], ["docker", "compose", "-p", "nanobot_bot_one"])
+            self.assertIn(str(first.compose), command)
+            self.assertIn("down", command)
+            self.assertEqual(cwd, first.root)
+            self.assertNotIn("nanobot_bot_two", command)
+            self.assertNotIn(str(second.compose), command)
 
     def test_runtime_logs_reads_compose_logs_for_bot(self) -> None:
         with workspace_temp_dir() as tmp:
@@ -176,6 +207,28 @@ class DeploymentEngineTest(unittest.TestCase):
             with self.assertRaises(DeploymentError):
                 engine.start(bot)
             self.assertEqual(runner.commands, [])
+
+    def test_rendered_compose_has_runtime_safety_controls(self) -> None:
+        with workspace_temp_dir() as tmp:
+            engine = DeploymentEngine(tmp / "bots", FakeRunner())
+            bot = bot_record(tmp)
+            paths = engine.deploy(bot)
+            compose = paths.compose.read_text(encoding="utf-8")
+
+            self.assertIn('user: "${APP_UID:-1000}:${APP_GID:-1000}"', compose)
+            self.assertIn("restart: unless-stopped", compose)
+            self.assertIn("CHANNEL_ALLOW_FROM: \"123\"", compose)
+            self.assertIn(f'- "{paths.data.resolve().as_posix()}:/home/app/.nanobot"', compose)
+            self.assertIn(f'- "{paths.workspace.resolve().as_posix()}:/workspace"', compose)
+            self.assertIn(f'file: "{paths.channel_secret.resolve().as_posix()}"', compose)
+            self.assertIn(f'file: "{paths.provider_secret.resolve().as_posix()}"', compose)
+            self.assertIn('uid: "1000"', compose)
+            self.assertIn('gid: "1000"', compose)
+            self.assertIn("mode: 0440", compose)
+            self.assertNotIn("privileged: true", compose)
+            self.assertNotIn("/var/run/docker.sock", compose)
+            self.assertNotIn("channel-secret", compose)
+            self.assertNotIn("provider-secret", compose)
 
 
 if __name__ == "__main__":

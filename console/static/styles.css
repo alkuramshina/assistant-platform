@@ -76,6 +76,12 @@ h2 {
   background: #fff;
 }
 
+.section-note {
+  margin: -8px 0 0;
+  color: #4f554b;
+  font-size: 14px;
+}
+
 .grid {
   display: grid;
   grid-template-columns: minmax(260px, 1fr) minmax(230px, 0.8fr);
