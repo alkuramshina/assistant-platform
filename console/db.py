@@ -31,6 +31,7 @@ def init_db(conn: sqlite3.Connection) -> None:
           provider_base_url TEXT NOT NULL DEFAULT '',
           provider_model TEXT NOT NULL DEFAULT '',
           proxy_url TEXT NOT NULL DEFAULT '',
+          timezone TEXT NOT NULL DEFAULT '',
           system_prompt TEXT NOT NULL DEFAULT '',
           channel_secret_ref TEXT NOT NULL DEFAULT '',
           provider_secret_ref TEXT NOT NULL DEFAULT '',
@@ -54,6 +55,7 @@ def init_db(conn: sqlite3.Connection) -> None:
         """
     )
     _ensure_column(conn, "bots", "proxy_url", "TEXT NOT NULL DEFAULT ''")
+    _ensure_column(conn, "bots", "timezone", "TEXT NOT NULL DEFAULT ''")
     conn.commit()
 
 
@@ -76,6 +78,7 @@ def _bot_public(row: sqlite3.Row) -> dict[str, Any]:
         "provider_base_url": row["provider_base_url"],
         "provider_model": row["provider_model"],
         "proxy_url": row["proxy_url"],
+        "timezone": row["timezone"],
         "system_prompt": row["system_prompt"],
         "channel_secret_ref": row["channel_secret_ref"],
         "provider_secret_ref": row["provider_secret_ref"],
@@ -106,8 +109,8 @@ def create_bot(conn: sqlite3.Connection, data: BotInput) -> dict[str, Any]:
         """
         INSERT INTO bots (
           id, name, status, allowed_user_ids, provider_base_url, provider_model,
-          proxy_url, system_prompt, channel_secret_ref, provider_secret_ref, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          proxy_url, timezone, system_prompt, channel_secret_ref, provider_secret_ref, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             bot_id,
@@ -117,6 +120,7 @@ def create_bot(conn: sqlite3.Connection, data: BotInput) -> dict[str, Any]:
             data.provider_base_url,
             data.provider_model,
             data.proxy_url,
+            data.timezone,
             data.system_prompt,
             data.channel_secret_ref,
             data.provider_secret_ref,
@@ -195,11 +199,19 @@ def add_log(conn: sqlite3.Connection, bot_id: str, data: LogInput) -> dict[str, 
     return _log_public(row) if row else None
 
 
-def list_logs(conn: sqlite3.Connection, bot_id: str) -> list[dict[str, Any]] | None:
+def list_logs(conn: sqlite3.Connection, bot_id: str, limit: int = 100) -> list[dict[str, Any]] | None:
     if get_bot(conn, bot_id) is None:
         return None
+    safe_limit = max(1, min(int(limit), 500))
     rows = conn.execute(
-        "SELECT * FROM activity_logs WHERE bot_id = ? ORDER BY created_at, id",
-        (bot_id,),
+        """
+        SELECT * FROM (
+          SELECT * FROM activity_logs
+          WHERE bot_id = ?
+          ORDER BY created_at DESC, id DESC
+          LIMIT ?
+        ) ORDER BY created_at, id
+        """,
+        (bot_id, safe_limit),
     ).fetchall()
     return [_log_public(row) for row in rows]

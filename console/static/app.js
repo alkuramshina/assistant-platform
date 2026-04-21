@@ -5,7 +5,7 @@ const state = {
 
 const endpoints = {
   bots: "/api/bots",
-  logs: (id) => `/api/bots/${id}/logs`,
+  logs: (id) => `/api/bots/${id}/logs?limit=100`,
   runtimeLogs: (id) => `/api/bots/${id}/runtime-logs?tail=200`,
   start: (id) => `/api/bots/${id}/start`,
   stop: (id) => `/api/bots/${id}/stop`,
@@ -147,6 +147,7 @@ function renderSelected() {
     <dt>ID</dt><dd>${escapeHtml(bot.id)}</dd>
     <dt>Allowed users</dt><dd>${escapeHtml(bot.allowed_user_ids || "not set")}</dd>
     <dt>Proxy URL</dt><dd>${escapeHtml(bot.proxy_url || "not set")}</dd>
+    <dt>Timezone</dt><dd>${escapeHtml(bot.timezone || "not set")}</dd>
     <dt>Provider URL</dt><dd>${escapeHtml(bot.provider_base_url || "not set")}</dd>
     <dt>Model</dt><dd>${escapeHtml(bot.provider_model || "not set")}</dd>
     <dt>Telegram token</dt><dd>${bot.channel_secret_ref ? "stored server-side" : "not set"}</dd>

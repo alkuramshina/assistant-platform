@@ -13,6 +13,7 @@ class BotInput:
     provider_base_url: str = ""
     provider_model: str = ""
     proxy_url: str = ""
+    timezone: str = ""
     system_prompt: str = ""
     channel_secret_ref: str = ""
     provider_secret_ref: str = ""
@@ -30,6 +31,7 @@ class BotInput:
             provider_base_url=str(payload.get("provider_base_url", "")).strip(),
             provider_model=str(payload.get("provider_model", "")).strip(),
             proxy_url=str(payload.get("proxy_url", "")).strip(),
+            timezone=str(payload.get("timezone", "")).strip(),
             system_prompt=str(payload.get("system_prompt", "")).strip(),
             channel_secret_ref=str(payload.get("channel_secret_ref", "")).strip(),
             provider_secret_ref=str(payload.get("provider_secret_ref", "")).strip(),

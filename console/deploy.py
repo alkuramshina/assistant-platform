@@ -162,6 +162,8 @@ class DeploymentEngine:
         base_url = self._yaml_string(str(bot.get("provider_base_url", "")))
         prompt = self._yaml_string(str(bot.get("system_prompt", "")))
         allow = self._yaml_string(str(bot.get("allowed_user_ids", "")))
+        timezone_value = str(bot.get("timezone", "")).strip()
+        timezone = self._yaml_string(timezone_value)
         proxy_url = str(bot.get("proxy_url", "")).strip()
         proxy_env = ""
         if proxy_url:
@@ -191,6 +193,8 @@ class DeploymentEngine:
       DEFAULT_PROVIDER: vllm
       DEFAULT_MODEL: {model}
       SYSTEM_PROMPT: {prompt}
+      TZ: {timezone}
+      NANOBOT_TIMEZONE: {timezone}
       VLLM_API_BASE: {base_url}
       VLLM_API_KEY_FILE: /run/secrets/provider_secret
       TELEGRAM_TOKEN_FILE: /run/secrets/channel_secret

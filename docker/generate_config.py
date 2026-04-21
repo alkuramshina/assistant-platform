@@ -48,6 +48,17 @@ def secret_env(name: str) -> str:
     return path.read_text(encoding="utf-8").strip()
 
 
+def system_prompt() -> str:
+    prompt = env("SYSTEM_PROMPT", DEFAULT_SYSTEM_PROMPT)
+    timezone = env("NANOBOT_TIMEZONE") or env("TZ")
+    if timezone:
+        prompt = (
+            f"{prompt}\n"
+            f"Use timezone {timezone} for dates, reminders, and scheduled actions unless the user says otherwise."
+        )
+    return prompt
+
+
 def put_provider(
     providers: dict[str, dict[str, str]],
     name: str,
@@ -76,7 +87,7 @@ cfg: dict = {
             "provider": env("DEFAULT_PROVIDER", "openrouter"),
             "model": os.environ["DEFAULT_MODEL"],
             "workspace": str(workspace),
-            "systemPrompt": env("SYSTEM_PROMPT", DEFAULT_SYSTEM_PROMPT),
+            "systemPrompt": system_prompt(),
         }
     },
     "channels": {},

@@ -92,6 +92,8 @@ h2 {
 
 .logs {
   grid-column: 1 / -1;
+  display: grid;
+  gap: 12px;
 }
 
 fieldset {
@@ -134,10 +136,18 @@ textarea {
   resize: vertical;
 }
 
-.bot-list,
-.log-list {
+.bot-list {
   display: grid;
   gap: 10px;
+}
+
+.log-list {
+  display: grid;
+  align-content: start;
+  max-height: 360px;
+  overflow: auto;
+  gap: 10px;
+  padding-right: 4px;
 }
 
 .bot-manager {
@@ -268,6 +278,10 @@ dd {
   .grid,
   dl {
     grid-template-columns: 1fr;
+  }
+
+  .log-list {
+    max-height: 320px;
   }
 
   h1 {

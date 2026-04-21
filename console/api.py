@@ -74,7 +74,7 @@ class ConsoleHandler(BaseHTTPRequestHandler):
                 self._json_or_404("bot", bot)
                 return
             if len(parts) == 4 and parts[:2] == ["api", "bots"] and parts[3] == "logs":
-                logs = db.list_logs(conn, parts[2])
+                logs = db.list_logs(conn, parts[2], self._query_int("limit", 100))
                 self._json_or_404("logs", {"logs": logs} if logs is not None else None)
                 return
             if len(parts) == 4 and parts[:2] == ["api", "bots"] and parts[3] == "runtime-logs":

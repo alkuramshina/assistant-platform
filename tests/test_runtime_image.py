@@ -25,6 +25,7 @@ class RuntimeImageTest(unittest.TestCase):
         self.assertIn("OLCALL markers", generator)
         self.assertIn("JSON tool calls", generator)
         self.assertIn("ask one brief clarifying question", generator)
+        self.assertIn("NANOBOT_TIMEZONE", generator)
 
 
 if __name__ == "__main__":

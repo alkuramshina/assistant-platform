@@ -44,6 +44,7 @@ def bot_record(tmp: Path, bot_id: str = "bot-abc") -> dict:
         "allowed_user_ids": "123",
         "provider_base_url": "https://provider.example/v1",
         "provider_model": "free-model",
+        "timezone": "",
         "system_prompt": "Be concise",
         "channel_secret_ref": str(channel),
         "provider_secret_ref": str(provider),
@@ -114,6 +115,7 @@ class DeploymentEngineTest(unittest.TestCase):
             bot["provider_model"] = "nvidia/nemotron-3-super-120b-a12b:free"
             bot["provider_base_url"] = "https://openrouter.ai/api/v1"
             bot["proxy_url"] = "http://host.docker.internal:10801"
+            bot["timezone"] = "Europe/Moscow"
             bot["system_prompt"] = "Line one:\n- keep this as text\nLine three"
 
             paths = engine.deploy(bot)
@@ -121,6 +123,8 @@ class DeploymentEngineTest(unittest.TestCase):
 
             self.assertIn('DEFAULT_MODEL: "nvidia/nemotron-3-super-120b-a12b:free"', compose)
             self.assertIn('HTTPS_PROXY: "http://host.docker.internal:10801"', compose)
+            self.assertIn('TZ: "Europe/Moscow"', compose)
+            self.assertIn('NANOBOT_TIMEZONE: "Europe/Moscow"', compose)
             self.assertIn('NO_PROXY: "localhost,127.0.0.1,host.docker.internal"', compose)
             self.assertIn('SYSTEM_PROMPT: "Line one:\\n- keep this as text\\nLine three"', compose)
             self.assertIn(f'- "{paths.data.resolve().as_posix()}:/home/app/.nanobot"', compose)
