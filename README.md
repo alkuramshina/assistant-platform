@@ -64,7 +64,11 @@ Useful flags:
 | `--remote-root PATH` | Install root on the target server. |
 | `--console-port PORT` | HTTP port for the console UI. |
 
-Preflight checks are manual checks run by the operator from the machine where the deployer will be launched. Run them before the first deploy if the server is new, or after the deployer reports an SSH/sudo/connectivity error.
+### Preflight Checks
+
+The deployer runs its own SSH, sudo, Docker, Compose, disk, memory, and network checks. If Docker or Compose is missing and the operator approves host changes, the deployer attempts to install them.
+
+The commands below are optional manual checks run by the operator from the machine where the deployer will be launched. Run them before the first deploy if the server is new, or after the deployer reports an SSH/sudo/connectivity error.
 
 They answer three questions:
 
