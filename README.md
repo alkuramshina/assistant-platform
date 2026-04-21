@@ -1,133 +1,111 @@
 # Nanobot Console
 
-Nanobot Console deploys isolated Telegram assistants on a customer-provided Linux server or VM.
-
-The operator runs one SSH deployer, opens the web UI, enters bot settings, and starts bots from the console.
+Nanobot Console installs a small web console on a customer-provided Linux server. From that console, an operator creates isolated Telegram assistants, stores their secrets server-side, and starts or stops each bot.
 
 ```text
-Linux server or VM -> SSH deployer -> web console -> Telegram bot -> activity logs
+operator PC -> SSH/SCP deployer -> Linux server -> web console -> Telegram bots
 ```
 
-## What It Does
+Each bot gets its own Docker Compose project, data directory, workspace, secret files, runtime logs, and activity logs.
 
-- bootstraps or updates a Linux server over SSH;
-- runs a small console UI and API;
-- creates per-bot Docker Compose projects;
-- stores Telegram/provider secrets as server-side files;
-- starts/stops bots from the UI;
-- shows Activity logs and Runtime logs per selected bot.
+## Install Or Update
 
-Each bot gets its own Compose project, secrets, data directory, workspace, runtime logs, and activity logs.
-
-## Quick Start
+Run the deployer from PowerShell on the operator machine:
 
 ```powershell
-py -3 deployer\deploy.py
+.\deployer\deploy.ps1
 ```
 
-The deployer asks for the SSH target, checks the server, installs or updates the console, starts the service, and prints the UI URL.
+The deployer asks for:
 
-Repeat deploys use the same command. Non-secret SSH/deploy settings are saved in `.deployer.json`; sudo passwords, Telegram tokens, provider keys, and bot secrets are not stored there.
+- SSH target, for example `ubuntu@203.0.113.10`;
+- SSH port, default `22`;
+- remote install root, default `/opt/nanobot-console`;
+- console HTTP port, default `8787`;
+- optional HTTPS domain.
 
-## Deployer
+It then copies the runtime files with `scp`, runs the remote bootstrap over `ssh`, asks for host-change approval, asks for the remote `sudo` password once if needed, starts the service, and prints the console URL.
 
-Target server requirements:
+Only the operator machine needs `ssh` and `scp`. Python runs on the server; the remote bootstrap installs `python3`, Docker Engine, and Docker Compose when needed and approved.
+
+## Common Commands
+
+```powershell
+.\deployer\deploy.ps1
+.\deployer\deploy.ps1 -DryRun
+.\deployer\deploy.ps1 ak@192.168.155.66 -Port 22 -ConsolePort 8787
+.\deployer\deploy.ps1 ak@192.168.155.66 -Domain console.example.com
+.\deployer\deploy.ps1 ak@192.168.155.66 -IdentityFile C:\path\id_ed25519 -Yes
+```
+
+`-Yes` is for CI or other non-interactive runs. It disables SSH password prompts, requires key-based SSH login, and requires non-interactive `sudo`.
+
+Useful options:
+
+| Option | Meaning |
+| --- | --- |
+| `-DryRun` | Probe the server and stop before changes. |
+| `-Yes` | Approve changes without prompts; for automation only. |
+| `-Port PORT` | SSH port. |
+| `-IdentityFile PATH` | SSH private key path. |
+| `-RemoteRoot PATH` | Server install root. |
+| `-ConsolePort PORT` | Console HTTP port. |
+| `-Domain DOMAIN` | Publish the console as `https://DOMAIN/` using Caddy. |
+
+## Requirements
+
+Operator machine:
+
+- PowerShell;
+- OpenSSH `ssh`;
+- OpenSSH `scp`;
+- network access to the server.
+
+Target server:
 
 - Ubuntu-compatible Linux;
 - SSH server enabled;
-- target user can run `sudo`;
-- Docker Engine and Docker Compose, or permission for the deployer to install them;
+- a user that can run `sudo`;
 - outbound network access.
 
-Common commands:
+VM sizing:
+
+- Minimum for a small test install: 1 vCPU, 1 GB RAM, 10 GB free disk.
+- Recommended for normal use: 2 vCPU, 2 GB RAM, 20 GB free disk.
+- Add more RAM and disk for many bots, large workspaces, verbose logs, or local/proxy services on the same VM.
+
+Quick manual checks:
 
 ```powershell
-py -3 deployer\deploy.py                         # install/update
-py -3 deployer\deploy.py --dry-run               # probe only
-py -3 deployer\deploy.py <user>@<vm-ip>          # explicit target
-py -3 deployer\deploy.py --domain console.example.com
-py -3 deployer\deploy.py --reset-config          # ignore saved settings
-py -3 deployer\deploy.py --no-save-config        # do not write .deployer.json
-py -3 deployer\deploy.py <user>@<vm-ip> --yes    # non-interactive, requires key login and non-interactive sudo
-```
-
-Useful flags:
-
-| Flag | Meaning |
-|------|---------|
-| `--dry-run` | Probe the host and print planned actions. |
-| `--yes` | Approve changes and fail instead of prompting. |
-| `--reset-config` | Ignore `.deployer.json` for this run. |
-| `--no-save-config` | Do not write `.deployer.json`. |
-| `--config PATH` | Use a different local deployer config file. |
-| `--port PORT` | SSH port. |
-| `--identity-file PATH` | SSH private key path, if you do not want to use the default key from `~/.ssh`. |
-| `--remote-root PATH` | Install root on the target server. |
-| `--console-port PORT` | HTTP port for the console UI. |
-| `--domain DOMAIN` | Publish the console as `https://DOMAIN/` through a reverse proxy. |
-
-### Preflight Checks
-
-Preflight has two parts: what the operator must have ready before the deployer can work, and what the deployer checks or installs on the server.
-
-#### Operator Prerequisites
-
-The operator should have:
-
-- Python 3 launcher on the operator machine;
-- OpenSSH `ssh` and `scp` on the operator machine;
-- a reachable Linux server or VM;
-- SSH access to that server;
-- SSH key login. If the key is not the default one from `~/.ssh`, pass it with `--identity-file PATH`;
-- a remote user that can run `sudo`.
-
-Optional manual checks:
-
-```powershell
-py -3 --version
 ssh -V
 scp
 ssh <user>@<vm-ip>
-ssh -o BatchMode=yes <user>@<vm-ip> "printf 'ssh=ok\n'"
 ssh <user>@<vm-ip> "sudo true"
 ```
 
-If one of these fails:
-
-- install/fix missing `py`, `ssh`, or `scp` locally;
-- fix VM networking, IP address, username, SSH server, or firewall if normal SSH fails;
-- set up SSH key login if `BatchMode=yes` fails. If the key exists but is not the default key, pass its private-key path with `--identity-file PATH`;
-- enter the Linux sudo password when the interactive deployer asks for it;
-- use non-interactive sudo only when running with `--yes`.
-
-If `BatchMode=yes` fails, one way to configure SSH key login is:
+For `-Yes`, also verify key-based SSH and non-interactive sudo:
 
 ```powershell
-ssh-keygen -t ed25519
-type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh <user>@<vm-ip> "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys"
+ssh -o BatchMode=yes <user>@<vm-ip> "sudo -n true"
 ```
 
-#### Deployer Checks And Installs
+## Console Access
 
-After SSH works, the deployer checks the server for:
+Without `-Domain`, the console is served as plain HTTP:
 
-- `sudo`;
-- OS and CPU architecture;
-- Docker Engine;
-- Docker Compose;
-- disk space;
-- memory;
-- outbound network access.
+```text
+http://<server>:8787/
+```
 
-If Docker or Compose is missing and the operator approves host changes, the deployer attempts to install or repair them. It also creates or updates the console under the remote install root.
+Use plain HTTP only on a trusted network, VPN, firewall-restricted host, or SSH tunnel.
 
-The deployer does not install Python, SSH, or SCP on the operator machine, and it does not fix unreachable VM networking or missing SSH access.
+With `-Domain console.example.com`, the deployer binds the console backend to `127.0.0.1`, installs/configures Caddy when available, and publishes:
 
-## Console Exposure
+```text
+https://console.example.com/
+```
 
-Without `--domain`, the console is served as plain HTTP on `http://<server>:<console-port>/`. Use that only for local/manual testing on a trusted network.
-
-With `--domain console.example.com`, the deployer binds the console backend to `127.0.0.1`, attempts to install/configure Caddy, and publishes `https://console.example.com/`. The operator must point DNS to the server and allow inbound `80/tcp` and `443/tcp`.
+Point DNS at the server and allow inbound `80/tcp` and `443/tcp`.
 
 ## Create A Bot
 
@@ -138,51 +116,9 @@ Open the printed console URL and create a bot with:
 - allowed Telegram user IDs;
 - provider API key;
 - model preset;
-- optional timezone;
-- optional proxy URL, if the server cannot reach Telegram directly;
-- optional system prompt.
+- optional timezone, proxy URL, and system prompt.
 
 Click `Start`, then message the bot from an allowlisted Telegram account.
-
-The UI shows:
-
-- bot list and status;
-- selected bot details;
-- start/stop controls;
-- Activity logs with user requests and bot responses;
-- Runtime logs for startup, Telegram, provider, and Compose diagnostics.
-
-## Telegram Connectivity
-
-The server must reach Telegram Bot API.
-
-```powershell
-ssh <user>@<vm-ip> 'curl -I --max-time 10 https://api.telegram.org'
-```
-
-If general internet works but Telegram times out, run a VPN/proxy on the server and set the bot `Proxy URL` in the UI, for example:
-
-```text
-http://host.docker.internal:10801
-```
-
-## Console API
-
-The UI uses the same local JSON API:
-
-| Method | Path | Purpose |
-|--------|------|---------|
-| `GET` | `/health` | health check |
-| `GET` | `/api/bots` | list bots |
-| `POST` | `/api/bots` | create bot and write secret files |
-| `GET` | `/api/bots/<id>` | fetch one bot |
-| `POST` | `/api/bots/<id>/start` | start selected bot |
-| `POST` | `/api/bots/<id>/stop` | stop selected bot |
-| `GET` | `/api/bots/<id>/logs?limit=100` | Activity logs |
-| `POST` | `/api/bots/<id>/logs` | Activity sink used by bot runtime |
-| `GET` | `/api/bots/<id>/runtime-logs?tail=200` | Docker runtime logs |
-
-Secret values are never returned by the API. Submitted tokens/keys are written under the server-side secret root.
 
 ## Server Control
 
@@ -196,29 +132,23 @@ sudo /opt/nanobot-console/consolectl bot-logs <bot-id> 200
 sudo /opt/nanobot-console/consolectl url
 ```
 
-## Two-Bot Isolation Check
+If Telegram is unreachable from the server, test it directly:
 
-Manual smoke test for a server that already has the console:
+```powershell
+ssh <user>@<vm-ip> 'curl -I --max-time 10 https://api.telegram.org'
+```
 
-1. Create two bots with different Telegram tokens and allowlisted users.
-2. Start both bots from the UI.
-3. Send a Telegram message to each bot.
-4. Confirm each bot has its own Activity and Runtime logs.
-5. Stop one bot.
-6. Confirm the stopped bot no longer responds and the other bot still responds.
+If general internet works but Telegram is blocked, run a proxy/VPN on the server and set the bot `Proxy URL` in the UI.
 
-Each bot should keep a separate directory under `/opt/nanobot-console/bots/<bot-id>/` and a separate Compose project named from that bot ID.
-
-## Security
+## Security Notes
 
 - Do not commit real secrets.
-- Rotate any token that appears in chat, screenshots, terminal output, or logs.
-- Keep the console private. Plain HTTP is for local/manual testing only; use HTTPS, VPN, SSH tunnel, firewall, or another access-control layer for non-local use.
-- Use `--domain DOMAIN` when the console should be reachable as HTTPS on a real host.
-- Telegram allowlist is required for bot start.
+- Rotate any token that appears in chat, screenshots, terminals, or logs.
+- Telegram allowlist is required before a bot can start.
+- Secret values are written to server-side secret files and are not shown again by the API.
 - Bot containers do not mount `docker.sock`.
 - Bot containers run as a non-root app user.
-- Bot state is isolated per bot under `/opt/nanobot-console/bots/<bot-id>/`.
+- Bot state is isolated under `/opt/nanobot-console/bots/<bot-id>/`.
 
 ## Development Checks
 

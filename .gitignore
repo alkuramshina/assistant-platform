@@ -13,7 +13,6 @@ __pycache__/
 *.log
 desktop.ini
 .test-tmp/
-.deployer.json
 
 # Local agent/GSD working memory. Durable product docs belong in README.md.
 .planning

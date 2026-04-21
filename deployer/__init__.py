@@ -1,2 +1,0 @@
-"""Nanobot Console deployer package."""
-
