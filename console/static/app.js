@@ -12,31 +12,35 @@ const endpoints = {
   stop: (id) => `/api/bots/${id}/stop`,
 };
 
+const providerBaseUrls = {
+  openrouter: "https://openrouter.ai/api/v1",
+};
+
 const modelPresets = [
   {
     label: "Llama 3.3 70B Instruct (free)",
     model: "meta-llama/llama-3.3-70b-instruct:free",
-    baseUrl: "https://openrouter.ai/api/v1",
+    baseUrl: providerBaseUrls.openrouter,
   },
   {
     label: "NVIDIA Nemotron 3 Nano 30B A3B (free)",
     model: "nvidia/nemotron-3-nano-30b-a3b:free",
-    baseUrl: "https://openrouter.ai/api/v1",
+    baseUrl: providerBaseUrls.openrouter,
   },
   {
     label: "NVIDIA Nemotron 3 Super (free)",
     model: "nvidia/nemotron-3-super-120b-a12b:free",
-    baseUrl: "https://openrouter.ai/api/v1",
+    baseUrl: providerBaseUrls.openrouter,
   },
   {
     label: "Qwen3 Coder 480B A35B (free)",
     model: "qwen/qwen3-coder:free",
-    baseUrl: "https://openrouter.ai/api/v1",
+    baseUrl: providerBaseUrls.openrouter,
   },
   {
     label: "OpenRouter Free Router (fallback, variable)",
     model: "openrouter/free",
-    baseUrl: "https://openrouter.ai/api/v1",
+    baseUrl: providerBaseUrls.openrouter,
   },
 ];
 
@@ -84,7 +88,7 @@ function renderModelPresets() {
   modelPresets.forEach((preset) => {
     const option = document.createElement("option");
     option.value = preset.model;
-    option.dataset.baseUrl = preset.baseUrl;
+    option.dataset.baseUrl = requirePresetBaseUrl(preset);
     option.textContent = preset.label;
     els.model.append(option);
   });
@@ -94,6 +98,13 @@ function renderModelPresets() {
 function syncProviderBaseUrl() {
   const selected = els.model.selectedOptions[0];
   els.providerBaseUrl.value = selected?.dataset.baseUrl || "";
+}
+
+function requirePresetBaseUrl(preset) {
+  if (!preset.baseUrl) {
+    throw new Error(`Missing provider API base URL for ${preset.model}`);
+  }
+  return preset.baseUrl;
 }
 
 function selectedBot() {
