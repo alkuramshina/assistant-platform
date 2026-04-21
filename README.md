@@ -66,15 +66,20 @@ Useful flags:
 
 ### Preflight Checks
 
-The deployer runs its own SSH, sudo, Docker, Compose, disk, memory, and network checks. If Docker or Compose is missing and the operator approves host changes, the deployer attempts to install them.
+Preflight has two parts: what the operator must have ready before the deployer can work, and what the deployer checks or installs on the server.
 
-The commands below are optional manual checks run by the operator from the machine where the deployer will be launched. Run them before the first deploy if the server is new, or after the deployer reports an SSH/sudo/connectivity error.
+#### Operator Prerequisites
 
-They answer three questions:
+The operator should have:
 
-- does the operator machine have Python, SSH, and SCP;
-- can the operator log in to the server over SSH without an interactive SSH password prompt;
-- can the remote user run `sudo`.
+- Python 3 launcher on the operator machine;
+- OpenSSH `ssh` and `scp` on the operator machine;
+- a reachable Linux server or VM;
+- SSH access to that server;
+- SSH key login, or an explicit `--identity-file`;
+- a remote user that can run `sudo`.
+
+Optional manual checks:
 
 ```powershell
 py -3 --version
@@ -85,27 +90,36 @@ ssh -o BatchMode=yes <user>@<vm-ip> "printf 'ssh=ok\n'"
 ssh <user>@<vm-ip> "sudo true"
 ```
 
-What the operator may need to fix manually:
+If one of these fails:
 
-- local tools: if `py`, `ssh`, or `scp` is missing, install/fix it on the operator machine;
-- SSH access: if normal `ssh <user>@<vm-ip>` fails, fix VM networking, IP address, username, SSH server, or firewall;
-- SSH key login: if `BatchMode=yes` fails, set up SSH key login or pass `--identity-file`;
-- sudo password: if `sudo true` asks for a password, that is okay for interactive deploys because the deployer asks for the Linux sudo password for this session and does not store it;
-- non-interactive mode: if using `--yes`, `sudo true` must work without a password because the deployer cannot prompt.
+- install/fix missing `py`, `ssh`, or `scp` locally;
+- fix VM networking, IP address, username, SSH server, or firewall if normal SSH fails;
+- set up SSH key login or pass `--identity-file` if `BatchMode=yes` fails;
+- enter the Linux sudo password when the interactive deployer asks for it;
+- use non-interactive sudo only when running with `--yes`.
 
-What the deployer handles after SSH/sudo works:
-
-- probes Docker, Compose, disk, memory, and outbound network;
-- asks before changing host packages or services;
-- installs or repairs Docker/Compose prerequisites when possible;
-- creates/updates the console under the remote install root.
-
-If `BatchMode=yes` fails, configure SSH key login:
+If `BatchMode=yes` fails, one way to configure SSH key login is:
 
 ```powershell
 ssh-keygen -t ed25519
 type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh <user>@<vm-ip> "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys"
 ```
+
+#### Deployer Checks And Installs
+
+After SSH works, the deployer checks the server for:
+
+- `sudo`;
+- OS and CPU architecture;
+- Docker Engine;
+- Docker Compose;
+- disk space;
+- memory;
+- outbound network access.
+
+If Docker or Compose is missing and the operator approves host changes, the deployer attempts to install or repair them. It also creates or updates the console under the remote install root.
+
+The deployer does not install Python, SSH, or SCP on the operator machine, and it does not fix unreachable VM networking or missing SSH access.
 
 ## Create A Bot
 
