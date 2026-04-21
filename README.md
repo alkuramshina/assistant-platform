@@ -1,79 +1,94 @@
-# Assistant Platform
+# Nanobot Console
 
-SSH-deployed multi-bot console for `nanobot`.
+Nanobot Console deploys multiple isolated Telegram assistants on a Linux server or VM.
 
-The customer provides a Linux server or VM. The deployer connects over SSH, installs or updates the console, and the console deploys isolated Telegram bot instances.
-
-## Source Of Truth
-
-- Product and architecture: [`docs/PROJECT_SUMMARY.md`](docs/PROJECT_SUMMARY.md)
-- Agent working memory: `.planning/`
-- Local agent tooling: `.codex/`
-
-`.planning/` and `.codex/` are not product docs.
-
-## Current Flow
+The operator runs one SSH deployer from this repo, opens the web console, enters bot settings, and starts bots from the UI.
 
 ```text
-server/VM -> SSH deploy -> console UI -> create bot -> Telegram chat -> activity logs
+Linux server or VM -> SSH deployer -> web console -> Telegram bot -> activity logs
 ```
 
-## Current Goal
+## Quick Start
 
-- deploy/update console on a customer server over SSH;
-- create multiple bot instances from the UI;
-- keep bot secrets outside git;
-- isolate bot state and workspace per bot;
-- require Telegram allowlist from first deploy;
-- show request/response activity logs per bot.
-
-## Deployer
+From Windows PowerShell in the repo root:
 
 ```powershell
-py -3 deployer\deploy.py user@server --dry-run
 py -3 deployer\deploy.py
-py -3 deployer\deploy.py user@server
-py -3 deployer\deploy.py user@server --yes
 ```
 
-The deployer prepares the server, starts the console service, and prints the UI URL. Telegram/provider credentials are entered in the UI.
+The deployer asks for the SSH target, checks the server, installs or updates the console, starts the service, and prints the UI URL.
 
-Preflight on Windows:
+For repeat deploys, run the same command again:
 
 ```powershell
-py -3 --version
-ssh -V
-scp
-ssh user@server
-ssh -o BatchMode=yes user@server "printf 'ssh=ok\n'"
-ssh user@server "sudo -n true"
+py -3 deployer\deploy.py
 ```
 
-Without `--yes`, deployer can prompt for missing connection settings and retry after fixes. With `--yes`, it never prompts and exits on failed preflight.
+Non-secret SSH/deploy settings are saved in `.deployer.json`. Sudo passwords, Telegram tokens, provider keys, and bot secrets are never stored there.
 
-The deployer uses `BatchMode=yes`, so SSH password prompts are disabled. SSH keys solve SSH login only. In interactive mode, deployer can ask for your remote sudo password for the deploy session; `--yes` requires non-interactive sudo.
+Detailed deployer guide: [`deployer/README.md`](deployer/README.md).
 
-If BatchMode SSH fails:
+## Create A Bot
+
+Open the printed console URL and create a bot with:
+
+- bot name;
+- Telegram bot token;
+- allowed Telegram user IDs;
+- provider API key;
+- model preset;
+- optional proxy URL, if the server cannot reach Telegram directly;
+- optional system prompt.
+
+Each bot gets its own Compose project, secrets, data directory, workspace, runtime logs, and activity logs.
+
+## Telegram Connectivity
+
+The server must reach Telegram Bot API:
 
 ```powershell
-ssh-keygen -t ed25519
-type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh user@server "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys"
-ssh -o BatchMode=yes user@server "printf 'ssh=ok\n'"
+ssh <user>@<vm-ip> 'curl -I --max-time 10 https://api.telegram.org'
 ```
 
-## Console API
+If general internet works but Telegram times out, run a VPN/proxy on the server and set the bot `Proxy URL` in the UI, for example:
 
-```powershell
-python -m console --db .local\console.db --bot-root .local\bots --secret-root .local\secrets
+```text
+http://host.docker.internal:10801
 ```
 
-The API binds to `127.0.0.1` by default and stores secret references only.
+## After Deploy
 
-## Useful Checks
+The deployer installs a helper on the server:
+
+```bash
+sudo /opt/nanobot-console/consolectl status
+sudo /opt/nanobot-console/consolectl restart
+sudo /opt/nanobot-console/consolectl logs
+sudo /opt/nanobot-console/consolectl bot-logs <bot-id> 200
+sudo /opt/nanobot-console/consolectl url
+```
+
+The web UI also shows:
+
+- bot list and status;
+- start/stop controls;
+- activity logs with user requests and bot responses;
+- runtime logs for startup, Telegram, provider, and compose diagnostics.
+
+## Security Notes
+
+- Do not commit real secrets.
+- Rotate any token that appears in chat, screenshots, terminal output, or logs.
+- Keep the console private. Plain HTTP is for local/manual testing only.
+- Telegram allowlist is required for bot start.
+- Bot containers do not mount `docker.sock`.
+- Bot state is isolated per bot under `/opt/nanobot-console/bots/<bot-id>/`.
+
+## Development Checks
 
 ```powershell
 docker compose config
-py -3 -m unittest tests.test_deployer tests.test_console_ui
-python -m unittest discover -s tests
-rg -n "Coolify|coolify|GHCR|Azure OAuth" README.md docs AGENTS.md
+py -3 -m unittest tests.test_deployer tests.test_deploy_engine tests.test_console_ui tests.test_runtime_image tests.test_redact
 ```
+
+Product summary: [`docs/PROJECT_SUMMARY.md`](docs/PROJECT_SUMMARY.md).
