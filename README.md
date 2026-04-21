@@ -60,7 +60,7 @@ Useful flags:
 | `--no-save-config` | Do not write `.deployer.json`. |
 | `--config PATH` | Use a different local deployer config file. |
 | `--port PORT` | SSH port. |
-| `--identity-file PATH` | SSH private key path. |
+| `--identity-file PATH` | SSH private key path, if you do not want to use the default key from `~/.ssh`. |
 | `--remote-root PATH` | Install root on the target server. |
 | `--console-port PORT` | HTTP port for the console UI. |
 
@@ -76,7 +76,7 @@ The operator should have:
 - OpenSSH `ssh` and `scp` on the operator machine;
 - a reachable Linux server or VM;
 - SSH access to that server;
-- SSH key login, or an explicit `--identity-file`;
+- SSH key login. If the key is not the default one from `~/.ssh`, pass it with `--identity-file PATH`;
 - a remote user that can run `sudo`.
 
 Optional manual checks:
@@ -94,7 +94,7 @@ If one of these fails:
 
 - install/fix missing `py`, `ssh`, or `scp` locally;
 - fix VM networking, IP address, username, SSH server, or firewall if normal SSH fails;
-- set up SSH key login or pass `--identity-file` if `BatchMode=yes` fails;
+- set up SSH key login if `BatchMode=yes` fails. If the key exists but is not the default key, pass its private-key path with `--identity-file PATH`;
 - enter the Linux sudo password when the interactive deployer asks for it;
 - use non-interactive sudo only when running with `--yes`.
 
@@ -197,26 +197,6 @@ sudo /opt/nanobot-console/consolectl url
 - Bot containers do not mount `docker.sock`.
 - Bot containers run as a non-root app user.
 - Bot state is isolated per bot under `/opt/nanobot-console/bots/<bot-id>/`.
-
-## Scope
-
-In scope:
-
-- SSH deployer;
-- local console UI/API;
-- per-bot Compose runtime;
-- Telegram bot channel;
-- OpenRouter-compatible provider presets;
-- Activity and Runtime logs.
-
-Out of scope:
-
-- Coolify;
-- Kubernetes;
-- hosted SaaS control plane;
-- multi-node orchestration;
-- enterprise RBAC/SSO;
-- full backup product.
 
 ## Development Checks
 
