@@ -84,7 +84,7 @@ Add a stop-isolation test:
 
 - `console/deploy.py`
 - `tests/test_deploy_engine.py`
-- `docs/PROJECT_SUMMARY.md`
+- `README.md`
 
 </read_first>
 
@@ -109,7 +109,7 @@ If the rendered Compose lacks basic resource limits, document that as a Phase 10
 
 - Safety audit test fails if `docker.sock`, privileged mode, missing non-root user, missing allowlist, or raw secret values appear.
 - Existing deploy-engine tests still pass.
-- Any resource-limit decision is captured in `docs/PROJECT_SUMMARY.md` or `deployer/README.md`.
+- Any resource-limit decision is captured in `README.md`.
 
 </acceptance_criteria>
 
@@ -119,9 +119,9 @@ If the rendered Compose lacks basic resource limits, document that as a Phase 10
 
 - `deployer/deploy.py`
 - `deployer/remote/bootstrap.sh`
-- `deployer/README.md`
 - `README.md`
-- `docs/PROJECT_SUMMARY.md`
+- `README.md`
+- `README.md`
 - `tests/test_deployer.py`
 
 </read_first>
@@ -195,8 +195,7 @@ Keep this minimal:
 <read_first>
 
 - `README.md`
-- `deployer/README.md`
-- `docs/PROJECT_SUMMARY.md`
+- `README.md`
 - `.planning/phases/10-multi-bot-isolation-and-hardening/10-VALIDATION.md`
 
 </read_first>
@@ -225,7 +224,7 @@ Create/update Phase 10 UAT notes with the exact human test:
 
 <acceptance_criteria>
 
-- README and deployer README mention Phase 10 safe exposure behavior.
+- README mentions Phase 10 safe exposure behavior.
 - Human UAT file exists for Phase 10.
 - Docs stay concise and do not reintroduce Coolify history.
 
@@ -242,4 +241,3 @@ Select-String -Path console\deploy.py,deployer\remote\bootstrap.sh,deployer\depl
 ## Human UAT
 
 Follow `10-VALIDATION.md` after execution. The phase is not complete until one VM run proves two bots can coexist and one can be stopped without stopping the other.
-

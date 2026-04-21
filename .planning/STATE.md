@@ -18,7 +18,7 @@ Current focus: Phase 10 - Multi-Bot Isolation and Hardening.
 
 Next command: `/gsd-execute-phase 10`.
 
-Source of truth: `docs/PROJECT_SUMMARY.md`.
+Source of truth: `README.md`.
 
 Notes:
 

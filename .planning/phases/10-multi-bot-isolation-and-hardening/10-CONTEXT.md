@@ -4,7 +4,7 @@ name: Multi-Bot Isolation and Hardening
 status: ready-for-planning
 created: "2026-04-21"
 source:
-  - docs/PROJECT_SUMMARY.md
+  - README.md
   - .planning/ROADMAP.md
   - .planning/REQUIREMENTS.md
 ---
@@ -26,7 +26,7 @@ Prove Nanobot Console can safely run more than one bot on the same Linux server 
   - non-root bot container user;
   - Telegram allowlist required before start;
   - secrets stay in server-side files and are redacted from UI errors/logs.
-- Add the HTTPS hardening path required by `docs/PROJECT_SUMMARY.md`:
+- Add the HTTPS hardening path required by `README.md`:
   - plain HTTP remains acceptable only for local/manual testing;
   - deployer either configures a reverse proxy from operator-provided domain settings or prints an explicit HTTP-only warning.
 
@@ -49,7 +49,7 @@ Prove Nanobot Console can safely run more than one bot on the same Linux server 
 
 ## Canonical References
 
-- `docs/PROJECT_SUMMARY.md` - source of truth for product goal, Phase 10 HTTPS hardening, security rules, and done means.
+- `README.md` - source of truth for product goal, Phase 10 HTTPS hardening, security rules, and done means.
 - `.planning/REQUIREMENTS.md` - Phase 10 requirement IDs: `ISO-01`, `ISO-02`, `HARD-01`.
 - `console/deploy.py` - per-bot Compose rendering and start/stop logic.
 - `console/api.py` - bot lifecycle API and runtime log endpoint.
@@ -57,4 +57,3 @@ Prove Nanobot Console can safely run more than one bot on the same Linux server 
 - `deployer/remote/bootstrap.sh` - remote host bootstrap, systemd unit, console URL output.
 - `tests/test_deploy_engine.py` - current deployment isolation tests.
 - `tests/test_deployer.py` - current deployer packaging and planning tests.
-

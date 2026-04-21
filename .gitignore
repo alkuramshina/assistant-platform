@@ -15,6 +15,6 @@ desktop.ini
 .test-tmp/
 .deployer.json
 
-# Local agent/GSD working memory. Durable decisions belong in docs/ and AGENTS.md.
+# Local agent/GSD working memory. Durable product docs belong in README.md.
 .planning
 .codex

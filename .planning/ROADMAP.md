@@ -1,6 +1,6 @@
 # Roadmap
 
-Source of truth: `docs/PROJECT_SUMMARY.md`.
+Source of truth: `README.md`.
 
 ## Phases
 

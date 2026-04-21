@@ -27,7 +27,6 @@ PACKAGE_PATHS = [
     "Dockerfile",
     "docker-compose.yml",
     "README.md",
-    "docs/PROJECT_SUMMARY.md",
 ]
 
 

@@ -40,7 +40,7 @@ Phase 10 should add an explicit automated audit over the rendered Compose YAML. 
 
 ### HTTPS / Reverse Proxy
 
-`docs/PROJECT_SUMMARY.md` says Phase 10 must harden non-local use: plain HTTP is only for local/manual testing; deployer should configure TLS from operator-provided domain settings or print an explicit HTTP-only warning.
+`README.md` says Phase 10 must harden non-local use: plain HTTP is only for local/manual testing; deployer should configure TLS from operator-provided domain settings or print an explicit HTTP-only warning.
 
 Practical prototype path:
 
@@ -67,4 +67,3 @@ Sources:
   - default stays HTTP with explicit warning.
 - Update README/deployer docs with HTTP vs HTTPS behavior.
 - Keep manual UAT focused: create two bots, start both, stop one, verify the other responds, verify HTTPS/warning behavior.
-

@@ -102,7 +102,7 @@ class DeployerTest(unittest.TestCase):
         self.assertIn("docker/entrypoint.sh", names)
         self.assertIn("docker/sitecustomize.py", names)
         self.assertIn("Dockerfile", names)
-        self.assertIn("docs/PROJECT_SUMMARY.md", names)
+        self.assertIn("README.md", names)
 
     def test_missing_prereqs_includes_compose_and_network(self) -> None:
         missing = deploy.missing_prereqs(
