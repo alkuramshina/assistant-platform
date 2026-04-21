@@ -85,13 +85,20 @@ ssh -o BatchMode=yes <user>@<vm-ip> "printf 'ssh=ok\n'"
 ssh <user>@<vm-ip> "sudo true"
 ```
 
-Expected operator actions:
+What the operator may need to fix manually:
 
-- if `py`, `ssh`, or `scp` is missing, install/fix it on the operator machine;
-- if normal `ssh <user>@<vm-ip>` fails, fix VM networking, IP address, username, SSH server, or firewall;
-- if `BatchMode=yes` fails, set up SSH key login or pass `--identity-file`;
-- if `sudo true` asks for a password, that is okay for interactive deploys: the deployer will ask for the Linux sudo password for this session and will not store it;
-- if using `--yes`, `sudo true` must work without a password because non-interactive mode cannot prompt.
+- local tools: if `py`, `ssh`, or `scp` is missing, install/fix it on the operator machine;
+- SSH access: if normal `ssh <user>@<vm-ip>` fails, fix VM networking, IP address, username, SSH server, or firewall;
+- SSH key login: if `BatchMode=yes` fails, set up SSH key login or pass `--identity-file`;
+- sudo password: if `sudo true` asks for a password, that is okay for interactive deploys because the deployer asks for the Linux sudo password for this session and does not store it;
+- non-interactive mode: if using `--yes`, `sudo true` must work without a password because the deployer cannot prompt.
+
+What the deployer handles after SSH/sudo works:
+
+- probes Docker, Compose, disk, memory, and outbound network;
+- asks before changing host packages or services;
+- installs or repairs Docker/Compose prerequisites when possible;
+- creates/updates the console under the remote install root.
 
 If `BatchMode=yes` fails, configure SSH key login:
 
