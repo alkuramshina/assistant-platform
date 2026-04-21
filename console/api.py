@@ -13,6 +13,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 from . import db
 from .deploy import DeploymentEngine, DeploymentError, Runner
 from .models import BotInput, LogInput
+from .redact import redact_secrets
 
 
 class ConsoleAPI(ThreadingHTTPServer):
@@ -84,9 +85,9 @@ class ConsoleHandler(BaseHTTPRequestHandler):
                 try:
                     text = self._deployment().runtime_logs(parts[2], self._query_int("tail", 200))
                 except DeploymentError as exc:
-                    self._json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                    self._json({"error": redact_secrets(str(exc))}, HTTPStatus.BAD_REQUEST)
                     return
-                self._json({"logs": text})
+                self._json({"logs": redact_secrets(text)})
                 return
 
         self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
@@ -112,7 +113,7 @@ class ConsoleHandler(BaseHTTPRequestHandler):
                     else:
                         result = self._deployment().stop(bot)
                 except DeploymentError as exc:
-                    self._json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                    self._json({"error": redact_secrets(str(exc))}, HTTPStatus.BAD_REQUEST)
                     return
                 bot = db.set_bot_status(conn, parts[2], result["status"])
                 self._json_or_404("bot", bot)

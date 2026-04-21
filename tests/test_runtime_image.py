@@ -16,6 +16,7 @@ class RuntimeImageTest(unittest.TestCase):
 
         self.assertIn("console activity hook enabled", hook)
         self.assertIn("console activity hook post failed", hook)
+        self.assertIn("<redacted>", hook)
 
 
 if __name__ == "__main__":

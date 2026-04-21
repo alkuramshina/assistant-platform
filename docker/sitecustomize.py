@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 import time
 import urllib.request
@@ -14,6 +15,19 @@ ACTIVITY_URL = os.environ.get("NANOBOT_CONSOLE_ACTIVITY_URL", "").strip()
 BOT_ID = os.environ.get("NANOBOT_CONSOLE_BOT_ID", "").strip()
 PROVIDER = os.environ.get("DEFAULT_PROVIDER", "").strip()
 MODEL = os.environ.get("DEFAULT_MODEL", "").strip()
+REDACTED = "<redacted>"
+SECRET_PATTERNS = (
+    re.compile(r"\b\d{6,}:[A-Za-z0-9_-]{20,}\b"),
+    re.compile(r"\b(sk-or-v1-[A-Za-z0-9_-]{20,})\b"),
+    re.compile(r"\b(sk-[A-Za-z0-9_-]{20,})\b"),
+)
+
+
+def _redact(text: str) -> str:
+    redacted = text
+    for pattern in SECRET_PATTERNS:
+        redacted = pattern.sub(REDACTED, redacted)
+    return redacted
 
 
 def _post_activity(payload: dict[str, Any]) -> None:
@@ -29,7 +43,7 @@ def _post_activity(payload: dict[str, Any]) -> None:
     try:
         urllib.request.urlopen(request, timeout=3).close()
     except Exception as exc:
-        print(f"console activity hook post failed: {exc}", file=sys.stderr, flush=True)
+        print(f"console activity hook post failed: {_redact(str(exc))}", file=sys.stderr, flush=True)
         return
 
 
