@@ -18,6 +18,14 @@ class RuntimeImageTest(unittest.TestCase):
         self.assertIn("console activity hook post failed", hook)
         self.assertIn("<redacted>", hook)
 
+    def test_generated_config_has_plain_text_guardrails(self) -> None:
+        generator = Path("docker/generate_config.py").read_text(encoding="utf-8")
+
+        self.assertIn("DEFAULT_SYSTEM_PROMPT", generator)
+        self.assertIn("OLCALL markers", generator)
+        self.assertIn("JSON tool calls", generator)
+        self.assertIn("ask one brief clarifying question", generator)
+
 
 if __name__ == "__main__":
     unittest.main()

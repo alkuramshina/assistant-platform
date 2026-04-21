@@ -13,8 +13,8 @@ const endpoints = {
 
 const modelPresets = [
   {
-    label: "OpenRouter Free Router",
-    model: "openrouter/free",
+    label: "Llama 3.3 70B Instruct (free)",
+    model: "meta-llama/llama-3.3-70b-instruct:free",
     baseUrl: "https://openrouter.ai/api/v1",
   },
   {
@@ -33,8 +33,8 @@ const modelPresets = [
     baseUrl: "https://openrouter.ai/api/v1",
   },
   {
-    label: "Llama 3.3 70B Instruct (free)",
-    model: "meta-llama/llama-3.3-70b-instruct:free",
+    label: "OpenRouter Free Router (fallback, variable)",
+    model: "openrouter/free",
     baseUrl: "https://openrouter.ai/api/v1",
   },
 ];

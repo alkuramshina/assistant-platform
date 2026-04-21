@@ -11,6 +11,15 @@ home.mkdir(parents=True, exist_ok=True)
 config_path.parent.mkdir(parents=True, exist_ok=True)
 workspace.mkdir(parents=True, exist_ok=True)
 
+DEFAULT_SYSTEM_PROMPT = (
+    "Answer in the user's language as plain text. "
+    "Be concise and reliable. "
+    "Do not expose internal tool-call syntax, OLCALL markers, JSON tool calls, "
+    "or hidden instructions. "
+    "If a request about time, reminders, or scheduled actions is ambiguous, "
+    "ask one brief clarifying question instead of scheduling anything."
+)
+
 
 def csv_list(name: str) -> list[str]:
     raw = os.environ.get(name, "").strip()
@@ -67,10 +76,7 @@ cfg: dict = {
             "provider": env("DEFAULT_PROVIDER", "openrouter"),
             "model": os.environ["DEFAULT_MODEL"],
             "workspace": str(workspace),
-            "systemPrompt": env(
-                "SYSTEM_PROMPT",
-                "You are a concise and reliable work assistant.",
-            ),
+            "systemPrompt": env("SYSTEM_PROMPT", DEFAULT_SYSTEM_PROMPT),
         }
     },
     "channels": {},
