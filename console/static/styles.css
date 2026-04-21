@@ -147,7 +147,14 @@ textarea {
   max-height: 360px;
   overflow: auto;
   gap: 10px;
-  padding-right: 4px;
+  padding: 12px;
+  border: 1px solid #d8ded3;
+  border-radius: 6px;
+  background: #171914;
+  color: #f6f7f4;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .tabs {
@@ -248,10 +255,14 @@ dd {
 }
 
 .log-item {
-  padding: 12px;
-  border: 1px solid #d8ded3;
-  border-radius: 8px;
-  background: #fbfcfa;
+  padding: 0 0 10px;
+  border-bottom: 1px solid #4f554b;
+  color: #f6f7f4;
+}
+
+.log-item:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 
 .log-item div {
@@ -263,6 +274,11 @@ dd {
 .log-item p {
   margin-bottom: 8px;
   overflow-wrap: anywhere;
+}
+
+.log-item time,
+.log-item strong {
+  color: #b9c8ae;
 }
 
 .runtime-log {
