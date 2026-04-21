@@ -1,6 +1,8 @@
 # Phase 10 Human UAT
 
-Status: pending
+Status: passed
+
+Human verification: confirmed by user on 2026-04-21.
 
 Run after deploying the current branch to a VM.
 

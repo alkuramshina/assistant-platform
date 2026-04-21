@@ -16,4 +16,4 @@ Verification:
 
 Human UAT:
 
-- Pending VM check for two live Telegram bots.
+- Passed by human on 2026-04-21.
