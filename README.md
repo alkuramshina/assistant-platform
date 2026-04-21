@@ -24,9 +24,9 @@ The deployer asks for:
 - console HTTP port, default `8787`;
 - optional HTTPS domain.
 
-It then copies the runtime files with `scp`, runs the remote bootstrap over `ssh`, asks for host-change approval, asks for the remote `sudo` password once if needed, starts the service, and prints the console URL.
+It then packages the runtime files into one `tar.gz`, uploads it with `scp`, runs the remote bootstrap over `ssh`, asks for host-change approval, asks for the remote `sudo` password once if needed, starts the service, and prints the console URL.
 
-Only the operator machine needs `ssh` and `scp`. Python runs on the server; the remote bootstrap installs `python3`, Docker Engine, and Docker Compose when needed and approved.
+Only the operator machine needs `ssh`, `scp`, and `tar`. Python runs on the server; the remote bootstrap installs `python3`, Docker Engine, and Docker Compose when needed and approved.
 
 ## Common Commands
 
@@ -59,6 +59,7 @@ Operator machine:
 - PowerShell;
 - OpenSSH `ssh`;
 - OpenSSH `scp`;
+- `tar`;
 - network access to the server.
 
 Target server:
@@ -97,7 +98,7 @@ Without `-Domain`, the console is served as plain HTTP:
 http://<server>:8787/
 ```
 
-Use plain HTTP only on a trusted network, VPN, firewall-restricted host, or SSH tunnel.
+Use plain HTTP only on a trusted network, VPN, firewall-restricted host, or SSH tunnel. If `ufw` is active on the VM, the deployer allows the console port. Provider firewalls/security groups may still need an inbound TCP rule for that port.
 
 With `-Domain console.example.com`, the deployer binds the console backend to `127.0.0.1`, installs/configures Caddy when available, and publishes:
 
@@ -106,6 +107,8 @@ https://console.example.com/
 ```
 
 Point DNS at the server and allow inbound `80/tcp` and `443/tcp`.
+
+In domain mode, if `ufw` is active on the VM, the deployer allows `80/tcp` and `443/tcp` and removes direct access to the console port.
 
 ## Create A Bot
 

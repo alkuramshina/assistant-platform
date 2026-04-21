@@ -16,9 +16,8 @@ $ProvidedParameters = @{} + $PSBoundParameters
 $RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 $Bootstrap = Join-Path $PSScriptRoot "remote\bootstrap.sh"
 $Control = Join-Path $PSScriptRoot "remote\consolectl.sh"
-$RemoteBootstrap = "/tmp/nanobot-console-bootstrap.sh"
-$RemoteControl = "/tmp/nanobot-console-consolectl.sh"
-$RemoteAppTmp = "/tmp/nanobot-console-app-upload"
+$RemoteUpload = "/tmp/nanobot-console-upload.tar.gz"
+$RemoteWork = "/tmp/nanobot-console-upload"
 $SudoPassword = $null
 $DEFAULT_PORT = "22"
 $DEFAULT_REMOTE_ROOT = "/opt/nanobot-console"
@@ -136,12 +135,9 @@ function Invoke-RemoteSudo([string]$Command) {
     }
 }
 
-function Copy-Remote([string[]]$Sources, [string]$Destination, [switch]$Recurse) {
+function Copy-Remote([string]$Source, [string]$Destination) {
     $cmdArgs = (ScpArgs)
-    if ($Recurse) {
-        $cmdArgs = @("-r") + $cmdArgs
-    }
-    $cmdArgs += $Sources
+    $cmdArgs += $Source
     $cmdArgs += "$Target`:$Destination"
     & scp @cmdArgs
     if ($LASTEXITCODE -ne 0) {
@@ -171,13 +167,28 @@ function Copy-FilteredTree([string]$Source, [string]$Destination) {
     }
 }
 
-function New-AppUploadStaging {
+function New-UploadPackage {
     $staging = Join-Path ([System.IO.Path]::GetTempPath()) ("nanobot-console-upload-" + [guid]::NewGuid().ToString("N"))
+    $archive = Join-Path ([System.IO.Path]::GetTempPath()) ("nanobot-console-upload-" + [guid]::NewGuid().ToString("N") + ".tar.gz")
     New-Item -ItemType Directory -Path $staging | Out-Null
-    Copy-FilteredTree (Join-Path $RepoRoot "console") (Join-Path $staging "console")
-    Copy-FilteredTree (Join-Path $RepoRoot "docker") (Join-Path $staging "docker")
-    Copy-Item -LiteralPath (Join-Path $RepoRoot "Dockerfile") -Destination (Join-Path $staging "Dockerfile") -Force
-    return $staging
+    New-Item -ItemType Directory -Path (Join-Path $staging "remote") | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $staging "app") | Out-Null
+    Copy-Item -LiteralPath $Bootstrap -Destination (Join-Path $staging "remote\bootstrap.sh") -Force
+    Copy-Item -LiteralPath $Control -Destination (Join-Path $staging "remote\consolectl.sh") -Force
+    Copy-FilteredTree (Join-Path $RepoRoot "console") (Join-Path $staging "app\console")
+    Copy-FilteredTree (Join-Path $RepoRoot "docker") (Join-Path $staging "app\docker")
+    Copy-Item -LiteralPath (Join-Path $RepoRoot "Dockerfile") -Destination (Join-Path $staging "app\Dockerfile") -Force
+    try {
+        & tar -czf $archive -C $staging .
+        if ($LASTEXITCODE -ne 0) {
+            throw "tar failed with exit code $LASTEXITCODE"
+        }
+        return $archive
+    } finally {
+        if (Test-Path $staging) {
+            Remove-Item -Recurse -Force -LiteralPath $staging
+        }
+    }
 }
 
 function ConsoleUrl {
@@ -218,26 +229,34 @@ if (-not (Test-Path $Bootstrap)) {
 if (-not (Test-Path $Control)) {
     Write-Error "Missing remote control script: $Control"
 }
+if (-not (Get-Command tar -ErrorAction SilentlyContinue)) {
+    Write-Error "Missing local tar command. Install bsdtar/Git for Windows tar or use a recent Windows OpenSSH environment."
+}
 
 $Domain = ($Domain.Trim().TrimEnd("/") -replace "^https?://", "")
 $RemoteRootQ = RemoteQuote $RemoteRoot
 $ConsolePortQ = RemoteQuote $ConsolePort
 $DomainQ = RemoteQuote $Domain
-$RemoteBootstrapQ = RemoteQuote $RemoteBootstrap
-$RemoteControlQ = RemoteQuote $RemoteControl
-$RemoteAppTmpQ = RemoteQuote $RemoteAppTmp
+$RemoteUploadQ = RemoteQuote $RemoteUpload
+$RemoteWorkQ = RemoteQuote $RemoteWork
+$RemoteBootstrapQ = RemoteQuote "$RemoteWork/remote/bootstrap.sh"
+$RemoteControlQ = RemoteQuote "$RemoteWork/remote/consolectl.sh"
 
 Write-Host "Target: $Target"
 Write-Host "Remote root: $RemoteRoot"
-Write-Host "Checking SSH connectivity..."
-Invoke-Remote "printf 'ssh=ok\n'"
-
-Write-Host "Uploading remote deploy scripts..."
-Copy-Remote @($Bootstrap) $RemoteBootstrap
-Copy-Remote @($Control) $RemoteControl
+Write-Host "Preparing upload package..."
+$uploadPackage = New-UploadPackage
+try {
+    Write-Host "Uploading deploy package..."
+    Copy-Remote $uploadPackage $RemoteUpload
+} finally {
+    if ($uploadPackage -and (Test-Path $uploadPackage)) {
+        Remove-Item -Force -LiteralPath $uploadPackage
+    }
+}
 
 Write-Host "Probing remote prerequisites..."
-Invoke-Remote "bash $RemoteBootstrapQ probe $RemoteRootQ $ConsolePortQ $DomainQ"
+Invoke-Remote "rm -rf $RemoteWorkQ && mkdir -p $RemoteWorkQ && tar -xzf $RemoteUploadQ -C $RemoteWorkQ && bash $RemoteBootstrapQ probe $RemoteRootQ $ConsolePortQ $DomainQ"
 
 if ($DryRun) {
     Write-Host ""
@@ -261,31 +280,8 @@ if (-not $Yes) {
     }
 }
 
-Write-Host "Applying remote bootstrap..."
-Invoke-RemoteSudo "bash $RemoteBootstrapQ apply $RemoteRootQ $ConsolePortQ $DomainQ"
-
-Write-Host "Installing remote scaffold..."
-Invoke-RemoteSudo "mkdir -p $RemoteRootQ && install -m 0755 $RemoteBootstrapQ $RemoteRootQ/bootstrap.sh && install -m 0755 $RemoteControlQ $RemoteRootQ/consolectl && printf '%s\n' 'nanobot-console' > $RemoteRootQ/VERSION && rm -f $RemoteBootstrapQ $RemoteControlQ"
-
-Write-Host "Uploading app files..."
-Invoke-Remote "rm -rf $RemoteAppTmpQ && mkdir -p $RemoteAppTmpQ"
-$appStaging = New-AppUploadStaging
-try {
-    $appSources = @(
-        (Join-Path $appStaging "console"),
-        (Join-Path $appStaging "docker"),
-        (Join-Path $appStaging "Dockerfile")
-    )
-    Copy-Remote $appSources "$RemoteAppTmp/" -Recurse
-} finally {
-    if ($appStaging -and (Test-Path $appStaging)) {
-        Remove-Item -Recurse -Force -LiteralPath $appStaging
-    }
-}
-Invoke-RemoteSudo "mkdir -p $RemoteRootQ/app && cp -R $RemoteAppTmpQ/. $RemoteRootQ/app/ && rm -rf $RemoteAppTmpQ"
-
-Write-Host "Finalizing console service..."
-Invoke-RemoteSudo "bash $RemoteRootQ/bootstrap.sh finalize $RemoteRootQ $ConsolePortQ $DomainQ"
+Write-Host "Applying remote install..."
+Invoke-RemoteSudo "bash $RemoteBootstrapQ apply $RemoteRootQ $ConsolePortQ $DomainQ && mkdir -p $RemoteRootQ && install -m 0755 $RemoteBootstrapQ $RemoteRootQ/bootstrap.sh && install -m 0755 $RemoteControlQ $RemoteRootQ/consolectl && printf '%s\n' 'nanobot-console' > $RemoteRootQ/VERSION && mkdir -p $RemoteRootQ/app && cp -R $RemoteWorkQ/app/. $RemoteRootQ/app/ && bash $RemoteRootQ/bootstrap.sh finalize $RemoteRootQ $ConsolePortQ $DomainQ && rm -rf $RemoteWorkQ $RemoteUploadQ"
 
 Write-Host "Done."
 Write-Host "Console root: $RemoteRoot"

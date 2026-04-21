@@ -143,6 +143,27 @@ EOF
   printf 'https_proxy=caddy\n'
 }
 
+configure_firewall() {
+  if ! has_cmd ufw; then
+    printf 'firewall=ufw_missing\n'
+    return 0
+  fi
+  if ! sudo ufw status | grep -qi '^Status: active'; then
+    printf 'firewall=ufw_inactive\n'
+    return 0
+  fi
+
+  if [ -n "$CONSOLE_DOMAIN" ]; then
+    sudo ufw allow 80/tcp >/dev/null
+    sudo ufw allow 443/tcp >/dev/null
+    sudo ufw delete allow "$CONSOLE_PORT/tcp" >/dev/null 2>&1 || true
+    printf 'firewall=https_only\n'
+  else
+    sudo ufw allow "$CONSOLE_PORT/tcp" >/dev/null
+    printf 'firewall=http_console_port\n'
+  fi
+}
+
 apply() {
   require_sudo
   install_prereqs
@@ -210,6 +231,7 @@ EOF
   fi
 
   configure_https_proxy
+  configure_firewall
   if [ -n "$CONSOLE_DOMAIN" ]; then
     printf 'console_url=https://%s/\n' "$CONSOLE_DOMAIN"
     printf 'console_backend=http://127.0.0.1:%s/\n' "$CONSOLE_PORT"
