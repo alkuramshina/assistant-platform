@@ -106,6 +106,9 @@ class ConsoleUITest(unittest.TestCase):
         self.assertIn(".log-list", body)
         self.assertIn("font-family: Consolas", body)
         self.assertIn("background: #171914", body)
+        self.assertIn("height: 360px", body)
+        self.assertIn("height: 320px", body)
+        self.assertNotIn("max-height: 420px", body)
         self.assertIn("border-radius: 8px", body)
 
     def test_static_path_traversal_is_not_served(self) -> None:

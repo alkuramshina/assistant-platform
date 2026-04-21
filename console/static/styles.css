@@ -144,7 +144,7 @@ textarea {
 .log-list {
   display: grid;
   align-content: start;
-  max-height: 360px;
+  height: 360px;
   overflow: auto;
   gap: 10px;
   padding: 12px;
@@ -282,8 +282,7 @@ dd {
 }
 
 .runtime-log {
-  min-height: 220px;
-  max-height: 420px;
+  height: 360px;
   margin: 0;
   padding: 12px;
   overflow: auto;
@@ -323,7 +322,11 @@ dd {
   }
 
   .log-list {
-    max-height: 320px;
+    height: 320px;
+  }
+
+  .runtime-log {
+    height: 320px;
   }
 
   h1 {
