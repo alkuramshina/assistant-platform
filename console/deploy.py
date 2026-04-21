@@ -159,7 +159,6 @@ class DeploymentEngine:
         data_volume = self._yaml_string(f"{data}:/home/app/.nanobot")
         workspace_volume = self._yaml_string(f"{workspace}:/workspace")
         model = self._yaml_string(str(bot.get("provider_model", "")))
-        base_url = self._yaml_string(str(bot.get("provider_base_url", "")))
         prompt = self._yaml_string(str(bot.get("system_prompt", "")))
         allow = self._yaml_string(str(bot.get("allowed_user_ids", "")))
         timezone_value = str(bot.get("timezone", "")).strip()
@@ -175,6 +174,7 @@ class DeploymentEngine:
       http_proxy: {proxy}
       https_proxy: {proxy}
       all_proxy: {proxy}
+      TELEGRAM_PROXY: {proxy}
       NO_PROXY: {no_proxy}
       no_proxy: {no_proxy}
 """
@@ -190,13 +190,12 @@ class DeploymentEngine:
       NANOBOT_HOME: /home/app/.nanobot
       NANOBOT_CONFIG: /home/app/.nanobot/config.json
       NANOBOT_WORKSPACE: /workspace
-      DEFAULT_PROVIDER: vllm
+      DEFAULT_PROVIDER: openrouter
       DEFAULT_MODEL: {model}
       SYSTEM_PROMPT: {prompt}
       TZ: {timezone}
       NANOBOT_TIMEZONE: {timezone}
-      VLLM_API_BASE: {base_url}
-      VLLM_API_KEY_FILE: /run/secrets/provider_secret
+      OPENROUTER_API_KEY_FILE: /run/secrets/provider_secret
       TELEGRAM_TOKEN_FILE: /run/secrets/channel_secret
       CHANNEL_TYPE: telegram
       CHANNEL_ALLOW_FROM: {allow}

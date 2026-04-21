@@ -15,7 +15,7 @@ RUN useradd --create-home --uid 1000 --shell /usr/sbin/nologin app
 WORKDIR /app
 
 ARG NANOBOT_PACKAGE=nanobot-ai==0.1.4.post5
-RUN pip install --no-cache-dir "${NANOBOT_PACKAGE}"
+RUN pip install --no-cache-dir --root-user-action=ignore "${NANOBOT_PACKAGE}"
 
 COPY docker/entrypoint.sh /app/entrypoint.sh
 COPY docker/generate_config.py /app/generate_config.py

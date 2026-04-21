@@ -12,35 +12,26 @@ const endpoints = {
   stop: (id) => `/api/bots/${id}/stop`,
 };
 
-const providerBaseUrls = {
-  openrouter: "https://openrouter.ai/api/v1",
-};
-
 const modelPresets = [
   {
     label: "Llama 3.3 70B Instruct (free)",
     model: "meta-llama/llama-3.3-70b-instruct:free",
-    baseUrl: providerBaseUrls.openrouter,
   },
   {
     label: "NVIDIA Nemotron 3 Nano 30B A3B (free)",
     model: "nvidia/nemotron-3-nano-30b-a3b:free",
-    baseUrl: providerBaseUrls.openrouter,
   },
   {
     label: "NVIDIA Nemotron 3 Super (free)",
     model: "nvidia/nemotron-3-super-120b-a12b:free",
-    baseUrl: providerBaseUrls.openrouter,
   },
   {
     label: "Qwen3 Coder 480B A35B (free)",
     model: "qwen/qwen3-coder:free",
-    baseUrl: providerBaseUrls.openrouter,
   },
   {
     label: "OpenRouter Free Router (fallback, variable)",
     model: "openrouter/free",
-    baseUrl: providerBaseUrls.openrouter,
   },
 ];
 
@@ -56,7 +47,6 @@ const els = {
   stop: document.querySelector("#stop"),
   message: document.querySelector("#message"),
   model: document.querySelector("#provider-model"),
-  providerBaseUrl: document.querySelector("#provider-base-url"),
   reloadLogs: document.querySelector("#reload-logs"),
   logs: document.querySelector("#logs"),
   reloadRuntimeLogs: document.querySelector("#reload-runtime-logs"),
@@ -88,23 +78,9 @@ function renderModelPresets() {
   modelPresets.forEach((preset) => {
     const option = document.createElement("option");
     option.value = preset.model;
-    option.dataset.baseUrl = requirePresetBaseUrl(preset);
     option.textContent = preset.label;
     els.model.append(option);
   });
-  syncProviderBaseUrl();
-}
-
-function syncProviderBaseUrl() {
-  const selected = els.model.selectedOptions[0];
-  els.providerBaseUrl.value = selected?.dataset.baseUrl || "";
-}
-
-function requirePresetBaseUrl(preset) {
-  if (!preset.baseUrl) {
-    throw new Error(`Missing provider API base URL for ${preset.model}`);
-  }
-  return preset.baseUrl;
 }
 
 function selectedBot() {
@@ -162,7 +138,7 @@ function renderSelected() {
     <dt>Allowed users</dt><dd>${escapeHtml(bot.allowed_user_ids || "not set")}</dd>
     <dt>Proxy URL</dt><dd>${escapeHtml(bot.proxy_url || "not set")}</dd>
     <dt>Timezone</dt><dd>${escapeHtml(bot.timezone || "not set")}</dd>
-    <dt>Provider URL</dt><dd>${escapeHtml(bot.provider_base_url || "not set")}</dd>
+    <dt>Provider</dt><dd>OpenRouter</dd>
     <dt>Model</dt><dd>${escapeHtml(bot.provider_model || "not set")}</dd>
     <dt>Telegram token</dt><dd>${bot.channel_secret_ref ? "stored server-side" : "not set"}</dd>
     <dt>Provider key</dt><dd>${bot.provider_secret_ref ? "stored server-side" : "not set"}</dd>
@@ -237,7 +213,6 @@ async function createBot(event) {
       body: JSON.stringify(payload),
     });
     els.form.reset();
-    syncProviderBaseUrl();
     state.selectedId = created.bot.id;
     await loadBots();
     await loadLogs();
@@ -298,7 +273,6 @@ function withCacheBust(path) {
 }
 
 els.form.addEventListener("submit", createBot);
-els.model.addEventListener("change", syncProviderBaseUrl);
 els.logTabs.forEach((button) => {
   button.addEventListener("click", () =>
     switchLogTab(button.dataset.tab).catch((error) => setMessage(error.message, "error")),

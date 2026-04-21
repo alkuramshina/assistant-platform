@@ -89,8 +89,8 @@ class DeploymentEngineTest(unittest.TestCase):
             self.assertIn("channel_secret", compose)
             self.assertIn("NANOBOT_CONSOLE_ACTIVITY_URL", compose)
             self.assertIn("host.docker.internal:host-gateway", compose)
-            self.assertIn("DEFAULT_PROVIDER: vllm", compose)
-            self.assertIn("VLLM_API_KEY_FILE: /run/secrets/provider_secret", compose)
+            self.assertIn("DEFAULT_PROVIDER: openrouter", compose)
+            self.assertIn("OPENROUTER_API_KEY_FILE: /run/secrets/provider_secret", compose)
             self.assertIn("source: provider_secret", compose)
             self.assertIn('uid: "1000"', compose)
             self.assertIn("mode: 0440", compose)
@@ -123,6 +123,7 @@ class DeploymentEngineTest(unittest.TestCase):
 
             self.assertIn('DEFAULT_MODEL: "nvidia/nemotron-3-super-120b-a12b:free"', compose)
             self.assertIn('HTTPS_PROXY: "http://host.docker.internal:10801"', compose)
+            self.assertIn('TELEGRAM_PROXY: "http://host.docker.internal:10801"', compose)
             self.assertIn('TZ: "Europe/Moscow"', compose)
             self.assertIn('NANOBOT_TIMEZONE: "Europe/Moscow"', compose)
             self.assertIn('NO_PROXY: "localhost,127.0.0.1,host.docker.internal"', compose)

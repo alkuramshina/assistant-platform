@@ -26,6 +26,9 @@ class RuntimeImageTest(unittest.TestCase):
         self.assertIn("JSON tool calls", generator)
         self.assertIn("ask one brief clarifying question", generator)
         self.assertIn("NANOBOT_TIMEZONE", generator)
+        self.assertIn('"timezone"', generator)
+        self.assertIn('"restrictToWorkspace": True', generator)
+        self.assertIn('"proxy"', generator)
 
 
 if __name__ == "__main__":

@@ -48,9 +48,13 @@ def secret_env(name: str) -> str:
     return path.read_text(encoding="utf-8").strip()
 
 
+def configured_timezone() -> str:
+    return env("NANOBOT_TIMEZONE") or env("TZ")
+
+
 def system_prompt() -> str:
     prompt = env("SYSTEM_PROMPT", DEFAULT_SYSTEM_PROMPT)
-    timezone = env("NANOBOT_TIMEZONE") or env("TZ")
+    timezone = configured_timezone()
     if timezone:
         prompt = (
             f"{prompt}\n"
@@ -81,16 +85,23 @@ put_provider(providers, "openai", api_key=secret_env("OPENAI_API_KEY"))
 put_provider(providers, "anthropic", api_key=secret_env("ANTHROPIC_API_KEY"))
 put_provider(providers, "vllm", api_key=secret_env("VLLM_API_KEY"), api_base=env("VLLM_API_BASE"))
 
+agent_defaults = {
+    "provider": env("DEFAULT_PROVIDER", "openrouter"),
+    "model": os.environ["DEFAULT_MODEL"],
+    "workspace": str(workspace),
+    "systemPrompt": system_prompt(),
+}
+if configured_timezone():
+    agent_defaults["timezone"] = configured_timezone()
+
 cfg: dict = {
     "agents": {
-        "defaults": {
-            "provider": env("DEFAULT_PROVIDER", "openrouter"),
-            "model": os.environ["DEFAULT_MODEL"],
-            "workspace": str(workspace),
-            "systemPrompt": system_prompt(),
-        }
+        "defaults": agent_defaults
     },
     "channels": {},
+    "tools": {
+        "restrictToWorkspace": True,
+    },
     "gateway": {
         "port": int(env("NANOBOT_GATEWAY_PORT", "18790")),
     },
@@ -120,6 +131,8 @@ if env("TELEGRAM_ENABLED", "false").lower() == "true":
             "groupPolicy": group_policy,
             "groupAllowFrom": group_allow_from,
         }
+        if env("TELEGRAM_PROXY"):
+            cfg["channels"]["telegram"]["proxy"] = env("TELEGRAM_PROXY")
 
 if env("SLACK_ENABLED", "false").lower() == "true":
     bot_token = secret_env("SLACK_BOT_TOKEN")

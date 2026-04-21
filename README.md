@@ -52,6 +52,32 @@ Useful options:
 | `-ConsolePort PORT` | Console HTTP port. |
 | `-Domain DOMAIN` | Publish the console as `https://DOMAIN/` using Caddy. |
 
+## SSH Key Setup
+
+Create a separate deploy key on the operator machine:
+
+```powershell
+ssh-keygen -t ed25519 -f $env:USERPROFILE\.ssh\nanobot_ed25519 -C "nanobot-deploy"
+```
+
+Add the public key to the server:
+
+```powershell
+type $env:USERPROFILE\.ssh\nanobot_ed25519.pub | ssh <user>@<vm-ip> "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys"
+```
+
+Check that SSH login works without a password:
+
+```powershell
+ssh -i $env:USERPROFILE\.ssh\nanobot_ed25519 <user>@<vm-ip>
+```
+
+Deploy with that key:
+
+```powershell
+.\deployer\deploy.ps1 <user>@<vm-ip> -IdentityFile $env:USERPROFILE\.ssh\nanobot_ed25519
+```
+
 ## Requirements
 
 Operator machine:
@@ -117,8 +143,8 @@ Open the printed console URL and create a bot with:
 - bot name;
 - Telegram bot token;
 - allowed Telegram user IDs;
-- provider API key;
-- model preset;
+- OpenRouter API key;
+- OpenRouter model preset;
 - optional timezone, proxy URL, and system prompt.
 
 Click `Start`, then message the bot from an allowlisted Telegram account.
