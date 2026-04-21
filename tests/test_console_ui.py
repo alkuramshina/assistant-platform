@@ -42,6 +42,10 @@ class ConsoleUITest(unittest.TestCase):
         self.assertIn("Stop", body)
         self.assertIn("Activity", body)
         self.assertIn("Runtime logs", body)
+        self.assertIn('role="tablist"', body)
+        self.assertIn('data-tab="activity"', body)
+        self.assertIn('data-tab="runtime"', body)
+        self.assertIn('data-tab-panel="runtime"', body)
         self.assertIn("secret file", body)
         self.assertIn("Telegram token", body)
         self.assertIn("Proxy URL", body)
@@ -78,6 +82,7 @@ class ConsoleUITest(unittest.TestCase):
         self.assertIn('cache: "no-store"', body)
         self.assertIn("withCacheBust", body)
         self.assertIn("refreshSelected", body)
+        self.assertIn("switchLogTab", body)
         self.assertIn("modelPresets", body)
         self.assertIn("Llama 3.3 70B Instruct (free)", body)
         self.assertLess(body.index("meta-llama/llama-3.3-70b-instruct:free"), body.index("openrouter/free"))
@@ -93,6 +98,8 @@ class ConsoleUITest(unittest.TestCase):
         self.assertIn("text/css", content_type)
         self.assertIn(".grid", body)
         self.assertIn("grid-column: 1 / -1", body)
+        self.assertIn(".tabs", body)
+        self.assertIn(".tab-panel[hidden]", body)
         self.assertIn("border-radius: 8px", body)
 
     def test_static_path_traversal_is_not_served(self) -> None:

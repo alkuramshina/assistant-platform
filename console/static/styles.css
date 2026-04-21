@@ -93,7 +93,7 @@ h2 {
 .logs {
   grid-column: 1 / -1;
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 fieldset {
@@ -148,6 +148,38 @@ textarea {
   overflow: auto;
   gap: 10px;
   padding-right: 4px;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-bottom: 1px solid #d8ded3;
+}
+
+.tab {
+  min-height: 38px;
+  padding: 8px 14px;
+  border-color: transparent;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  background: #f6f7f4;
+  color: #171914;
+}
+
+.tab[aria-selected="true"] {
+  border-color: #d8ded3;
+  border-bottom-color: #fff;
+  background: #fff;
+  color: #1d4f91;
+}
+
+.tab-panel[hidden] {
+  display: none;
+}
+
+.tab-panel {
+  min-width: 0;
 }
 
 .bot-manager {
@@ -231,12 +263,6 @@ dd {
 .log-item p {
   margin-bottom: 8px;
   overflow-wrap: anywhere;
-}
-
-.runtime-head {
-  margin-top: 22px;
-  padding-top: 16px;
-  border-top: 1px solid #d8ded3;
 }
 
 .runtime-log {

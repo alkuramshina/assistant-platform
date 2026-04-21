@@ -1,6 +1,7 @@
 const state = {
   bots: [],
   selectedId: null,
+  activeLogTab: "activity",
 };
 
 const endpoints = {
@@ -56,6 +57,8 @@ const els = {
   logs: document.querySelector("#logs"),
   reloadRuntimeLogs: document.querySelector("#reload-runtime-logs"),
   runtimeLogs: document.querySelector("#runtime-logs"),
+  logTabs: document.querySelectorAll("[data-tab]"),
+  logPanels: document.querySelectorAll("[data-tab-panel]"),
 };
 
 async function api(path, options = {}) {
@@ -189,9 +192,11 @@ async function selectBot(id) {
   state.selectedId = id;
   renderBots();
   await loadLogs();
-  await loadRuntimeLogs().catch((error) => {
-    els.runtimeLogs.textContent = error.message;
-  });
+  if (state.activeLogTab === "runtime") {
+    await loadRuntimeLogs().catch((error) => {
+      els.runtimeLogs.textContent = error.message;
+    });
+  }
 }
 
 async function loadLogs() {
@@ -244,9 +249,26 @@ async function runAction(action) {
     state.bots = state.bots.map((item) => (item.id === bot.id ? payload.bot : item));
     renderBots();
     await loadLogs();
+    if (state.activeLogTab === "runtime") {
+      await loadRuntimeLogs();
+    }
     setMessage(`${action === "start" ? "Start" : "Stop"} complete.`, "ok");
   } catch (error) {
     setMessage(error.message, "error");
+  }
+}
+
+async function switchLogTab(tab) {
+  state.activeLogTab = tab;
+  els.logTabs.forEach((button) => {
+    const active = button.dataset.tab === tab;
+    button.setAttribute("aria-selected", String(active));
+  });
+  els.logPanels.forEach((panel) => {
+    panel.hidden = panel.dataset.tabPanel !== tab;
+  });
+  if (tab === "runtime") {
+    await loadRuntimeLogs();
   }
 }
 
@@ -266,6 +288,11 @@ function withCacheBust(path) {
 
 els.form.addEventListener("submit", createBot);
 els.model.addEventListener("change", syncProviderBaseUrl);
+els.logTabs.forEach((button) => {
+  button.addEventListener("click", () =>
+    switchLogTab(button.dataset.tab).catch((error) => setMessage(error.message, "error")),
+  );
+});
 els.refresh.addEventListener("click", () =>
   refreshSelected().catch((error) => setMessage(error.message, "error")),
 );
@@ -288,5 +315,7 @@ async function refreshSelected() {
     return;
   }
   await loadLogs();
-  await loadRuntimeLogs();
+  if (state.activeLogTab === "runtime") {
+    await loadRuntimeLogs();
+  }
 }
