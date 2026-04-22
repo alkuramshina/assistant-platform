@@ -28,6 +28,46 @@ It then packages the runtime files into one `tar.gz`, uploads it with `scp`, run
 
 Only the operator machine needs `ssh`, `scp`, and `tar`. Python runs on the server; the remote bootstrap installs `python3`, Docker Engine, and Docker Compose when needed and approved.
 
+## How Deployment Works
+
+Deployment has two layers: the PowerShell deployer installs the Nanobot Console on the VM, and the console starts each bot as its own Docker Compose project.
+
+The local deployer packages `deployer/remote/bootstrap.sh`, `deployer/remote/consolectl.sh`, `console/`, `docker/`, and `Dockerfile` into a temporary `tar.gz`. While packaging, it skips Python cache directories and compiled bytecode. The archive is uploaded to `/tmp/nanobot-console-upload.tar.gz`, extracted under `/tmp/nanobot-console-upload`, and the remote bootstrap first runs in `probe` mode to report OS, Docker, Compose, sudo, disk, memory, and basic network status.
+
+After approval, bootstrap `apply` installs missing host prerequisites with `apt-get`, including `python3`, Docker Engine, and Docker Compose where needed. It creates the install layout under `/opt/nanobot-console`, including `app/`, `bots/`, `secrets/`, `templates/`, and `logs/`. The deployer then copies the uploaded app files into `/opt/nanobot-console/app`.
+
+Bootstrap `finalize` builds the runtime container image on the server:
+
+```bash
+sudo docker build -t nanobot-enterprise-pilot:dev /opt/nanobot-console/app
+```
+
+That image comes from the repository `Dockerfile`. It uses `python:3.12-slim`, installs `nanobot-ai==0.1.4.post5`, copies `docker/entrypoint.sh`, `docker/generate_config.py`, and `docker/sitecustomize.py`, creates a non-root `app` user with uid `1000`, and runs containers as that user.
+
+The console itself is not run in Docker. Bootstrap writes a `nanobot-console` systemd unit that runs:
+
+```bash
+python3 -m console --db /opt/nanobot-console/console.db --bot-root /opt/nanobot-console/bots --secret-root /opt/nanobot-console/secrets --host <bind-host> --port <console-port>
+```
+
+Without a domain, the console binds to `0.0.0.0:<console-port>`. With a domain, it binds to `127.0.0.1:<console-port>` and Caddy is configured as the HTTPS reverse proxy.
+
+When an operator creates a bot in the web console, the API stores the bot record in SQLite and writes the Telegram token and provider API key into server-side secret files. When the operator clicks `Start`, the console validates that Telegram allowlist and secret refs exist, creates `/opt/nanobot-console/bots/<bot-id>/`, prepares isolated `data/`, `workspace/`, and `secrets/` directories, copies the bot secrets into that bot directory, renders `docker-compose.yml`, and runs:
+
+```bash
+docker compose -p nanobot_<bot-id> -f /opt/nanobot-console/bots/<bot-id>/docker-compose.yml up -d
+```
+
+Each bot Compose project uses the prebuilt `nanobot-enterprise-pilot:dev` image by default. The compose file mounts bot-local state into `/home/app/.nanobot`, bot workspace into `/workspace`, passes model, prompt, timezone, allowlist, proxy URL, and activity callback through environment variables, and exposes Telegram and provider secrets through Docker Compose secrets.
+
+Inside the bot container, `/app/entrypoint.sh` runs `python /app/generate_config.py`. That script reads environment variables and secret files, writes `/home/app/.nanobot/config.json`, and enables the Telegram channel with the required allowlist. The entrypoint then starts the bot runtime:
+
+```bash
+nanobot gateway --config /home/app/.nanobot/config.json --workspace /workspace --port 18790
+```
+
+Stopping a bot runs the matching `docker compose ... down`. Runtime logs are read through `docker compose logs` for that bot's Compose project.
+
 ## Common Commands
 
 ```powershell
